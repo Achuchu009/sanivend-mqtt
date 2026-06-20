@@ -1,0 +1,230 @@
+/* app/sales/sales.module.css */
+
+/* ========================================= */
+/* 1. GLOBAL SETTINGS & VARIABLES            */
+/* ========================================= */
+:root {
+  --color-red: #E63946;
+  --color-white-bg: #F1FAEE;
+  --color-light-blue: #A8DADC;
+  --color-med-blue: #457B9D;
+  --color-dark-blue: #1D3557;
+  --color-pure-white: #FFFFFF;
+  --shadow-md: 0 10px 30px rgba(29, 53, 87, 0.12);
+  --shadow-sm: 0 4px 12px rgba(29, 53, 87, 0.08);
+}
+
+.container {
+    display: flex; width: 100%; height: 100vh;
+    background-color: var(--color-white-bg);
+    font-family: 'Poppins', sans-serif;
+    overflow: hidden; color: var(--color-dark-blue);
+}
+
+/* ========================================= */
+/* 2. SIDEBAR (STANDARD)                     */
+/* ========================================= */
+.sidebar {
+    width: 260px; background-color: var(--color-pure-white);
+    display: flex; flex-direction: column; padding: 24px 0;
+    border-right: 1px solid rgba(168, 218, 220, 0.4); 
+    height: 100%; z-index: 1000;
+    box-shadow: 2px 0 12px rgba(29, 53, 87, 0.03);
+}
+
+.logoSection { display: flex; align-items: center; gap: 12px; padding: 0 28px; margin-bottom: 40px; }
+.sanivend { font-family: 'Inter', sans-serif; font-weight: 800; font-size: 22px; color: var(--color-dark-blue); }
+.vend { color: var(--color-red); }
+.navMenu { display: flex; flex-direction: column; gap: 6px; padding: 0 16px; }
+.navItem {
+    display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+    cursor: pointer; color: var(--color-med-blue); font-weight: 500; font-size: 14px;
+    text-decoration: none; border-radius: 12px; transition: all 0.2s ease;
+}
+.navItem:hover { background-color: var(--color-white-bg); color: var(--color-dark-blue); transform: translateX(4px); }
+.activeNavItem { background-color: var(--color-red); color: var(--color-pure-white); font-weight: 600; box-shadow: 0 8px 16px rgba(230, 57, 70, 0.25); }
+.activeNavItem img { filter: brightness(0) invert(1); }
+.logoutSection { margin-top: auto; padding: 0 16px 20px 16px; }
+
+/* ========================================= */
+/* 3. MAIN CONTENT AREA                      */
+/* ========================================= */
+.mainContent { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background-color: var(--color-white-bg); position: relative; }
+
+.header {
+    height: 80px; background-color: transparent; display: flex;
+    align-items: center; justify-content: space-between; padding: 0 40px; flex-shrink: 0;
+}
+.headerLeft { display: flex; align-items: center; gap: 20px; }
+.pageTitle { font-size: 22px; font-weight: 700; color: var(--color-dark-blue); letter-spacing: -0.3px; }
+.userProfile { 
+    display: flex; align-items: center; gap: 12px; 
+    font-size: 14px; font-weight: 600; color: var(--color-dark-blue);
+    background: var(--color-pure-white); padding: 8px 16px;
+    border-radius: 30px; border: 1px solid rgba(168, 218, 220, 0.5); 
+    box-shadow: 0 4px 12px rgba(29, 53, 87, 0.08); 
+}
+.menuIcon, .closeBtn { display: none; }
+
+.contentArea { padding: 10px 40px 40px 40px; display: flex; flex-direction: column; gap: 24px; }
+.dateFilterContainer { display: flex; gap: 16px; margin-bottom: 8px; }
+
+/* 1. SUMMARY CARDS */
+.summarySection { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+
+.summaryCard {
+    background: linear-gradient(135deg, var(--color-pure-white) 0%, #F8FBFC 100%);
+    border-radius: 20px; padding: 24px 28px;
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: var(--shadow-sm); border: 1px solid rgba(168, 218, 220, 0.4);
+    transition: transform 0.2s ease;
+}
+.summaryCard:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.cardLabel { font-size: 12px; color: var(--color-med-blue); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.cardValue { font-size: 28px; font-weight: 800; color: var(--color-dark-blue); margin-top: 4px; }
+.iconBox { width: 60px; height: 60px; background: rgba(168, 218, 220, 0.2); border-radius: 16px; display: flex; align-items: center; justify-content: center; }
+
+/* 2. REARRANGED CHARTS */
+.fullWidthChart {
+    background: var(--color-pure-white);
+    border-radius: 24px; padding: 32px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(168, 218, 220, 0.5);
+    display: flex; flex-direction: column;
+}
+
+.secondaryChartsGrid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+}
+
+.chartCard {
+    background: var(--color-pure-white);
+    border-radius: 24px; padding: 32px;
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(168, 218, 220, 0.5);
+    display: flex; flex-direction: column;
+}
+
+.chartTitle { font-size: 18px; font-weight: 700; color: var(--color-dark-blue); margin-bottom: 24px; }
+
+/* 3. FILTERS & EXPORT */
+.filterSection {
+    background: var(--color-pure-white); border-radius: 20px; padding: 20px 28px;
+    box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: space-between; gap: 20px;
+    border: 1px solid rgba(168, 218, 220, 0.3);
+}
+.filterTitle { font-size: 16px; font-weight: 700; color: var(--color-dark-blue); display: flex; align-items: center; gap: 10px; }
+.filterControls { display: flex; gap: 24px; align-items: center; }
+.filterGroup { display: flex; align-items: center; gap: 12px; }
+.filterLabel { font-size: 13px; font-weight: 600; color: var(--color-med-blue); }
+
+.selectInput { 
+    padding: 10px 16px; border-radius: 12px; 
+    border: 1.5px solid rgba(168, 218, 220, 0.5); 
+    background-color: var(--color-white-bg); min-width: 140px; 
+    font-family: 'Poppins', sans-serif; font-size: 14px; font-weight: 500; 
+    color: var(--color-dark-blue); outline: none; cursor: pointer; transition: all 0.2s ease;
+}
+.selectInput:focus { border-color: var(--color-med-blue); background-color: var(--color-pure-white); }
+
+/* 4. TABLE */
+.tableContainer { 
+    background: var(--color-pure-white); border-radius: 24px; padding: 24px; 
+    box-shadow: var(--shadow-md); overflow-x: auto; display: flex; flex-direction: column; 
+    border: 1px solid rgba(168, 218, 220, 0.5);
+}
+.salesTable { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 600px; }
+
+.salesTable th { 
+    background-color: #F8FBFC; color: var(--color-med-blue); text-align: left; 
+    padding: 18px 24px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    border-bottom: 2px solid rgba(168, 218, 220, 0.3);
+}
+.salesTable th:first-child { border-top-left-radius: 16px; }
+.salesTable th:last-child { border-top-right-radius: 16px; }
+
+.salesTable td { 
+    padding: 20px 24px; border-bottom: 1px solid #f0f0f0; 
+    font-size: 14px; color: var(--color-dark-blue); font-weight: 500; 
+}
+.salesTable tr:last-child td { border-bottom: none; }
+
+.badgeCash { background-color: #E8F5E9; color: #2E7D32; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; display: inline-block; }
+.badgeRfid { background-color: #E3F2FD; color: #1565C0; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; display: inline-block; }
+
+.pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 24px; padding-top: 16px; border-top: 1px solid #f0f0f0; }
+.pageBtn { 
+    width: 36px; height: 36px; border-radius: 10px; border: 1.5px solid rgba(168, 218, 220, 0.4); 
+    background-color: var(--color-pure-white); color: var(--color-med-blue); 
+    font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; 
+}
+.pageBtn:hover:not(:disabled) { background-color: var(--color-white-bg); border-color: var(--color-med-blue); }
+.pageBtnActive { background-color: var(--color-dark-blue); color: white; border-color: var(--color-dark-blue); }
+.pageBtn:disabled { background-color: #fafafa; color: #ddd; cursor: not-allowed; border-color: #eee; }
+
+/* ========================================= */
+/* 5. TOAST NOTIFICATION STYLES              */
+/* ========================================= */
+.toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: var(--color-pure-white);
+    padding: 16px 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 9999;
+    animation: slideUp 0.3s ease forwards;
+    border-left: 6px solid transparent;
+}
+
+.toastSuccess { border-left-color: #2A9D8F; }
+.toastError { border-left-color: #E63946; }
+.toastInfo { border-left-color: #457B9D; }
+
+.toastIcon { 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+}
+
+.toastMessage { 
+    font-size: 14px; 
+    font-weight: 600; 
+    color: var(--color-dark-blue); 
+}
+
+@keyframes slideUp {
+    from { 
+        transform: translateY(100px); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1; 
+    }
+}
+
+/* ========================================= */
+/* 6. RESPONSIVENESS                         */
+/* ========================================= */
+@media (max-width: 1024px) {
+    .summarySection { grid-template-columns: 1fr; }
+    .secondaryChartsGrid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+    .container { flex-direction: column; height: 100vh; overflow: hidden; }
+    .sidebar { position: fixed; left: -100%; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .sidebarOpen { left: 0; }
+    .menuIcon, .closeBtn { display: block; }
+    .header { padding: 0 20px; }
+    .contentArea { padding: 20px; }
+    
+    .filterSection { flex-direction: column; align-items: stretch; gap: 15px; }
+    .filterControls { flex-direction: column; gap: 12px; align-items: stretch; }
+    .selectInput { width: 100%; }
+}

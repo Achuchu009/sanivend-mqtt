@@ -1,0 +1,104 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Inventory {
+  slotId       String            @id @db.VarChar(10)  // Changed: Use slotId as primary key
+  productName  String            @map("name")         // Map to your existing 'name' column
+  unitPrice    Decimal           @map("price") @db.Decimal(10, 2)  // Changed: Decimal for currency
+  stock        Int
+  maxCapacity  Int               @map("max") @default(10)
+  lastRefill   DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  
+  sales        Sales[]
+  systemLogs   SystemLogs[]
+  rfidTransactions RFIDTransaction[]
+
+  @@map("inventory")  // Optional: keeps your table name lowercase
+}
+
+model Sales {
+  id            Int      @id @default(autoincrement())
+  amount        Decimal  @db.Decimal(10, 2)  // Changed: Use Decimal for money
+  itemName      String
+  slotId        String
+  quantity      Int
+  paymentMethod String   // "COIN" or "RFID"
+  cardUid       String?
+  createdAt     DateTime @default(now())
+  
+  inventory     Inventory @relation(fields: [slotId], references: [slotId])
+
+  @@map("sales")
+}
+
+model SystemLogs {
+  id        Int      @id @default(autoincrement())
+  errorCode String
+  message   String
+  slotId    String?
+  status    String   @default("Open")
+  timestamp DateTime @default(now())
+  
+  inventory Inventory? @relation(fields: [slotId], references: [slotId])
+
+  @@map("system_logs")
+}
+
+model RFIDCard {
+  id         Int      @id @default(autoincrement())
+  uid        String   @unique
+  owner      String?
+  balance    Decimal  @db.Decimal(10, 2)  // Changed: Use Decimal for money
+  lastLoaded DateTime @default(now())
+  lastUsed   DateTime @default(now())
+  isActive   Boolean  @default(true)
+
+  @@map("rfid_cards")
+}
+
+model RFIDTransaction {
+  id        Int       @id @default(autoincrement())
+  cardUid   String
+  amount    Decimal   @db.Decimal(10, 2)  // Changed: Use Decimal for money
+  type      String    @default("Purchase")
+  slotId    String?
+  status    String    @default("Success")
+  createdAt DateTime  @default(now())
+  
+  inventory Inventory? @relation(fields: [slotId], references: [slotId])
+
+  @@map("rfid_transactions")
+}
+
+model SystemSettings {
+  id              Int     @id @default(1)
+  machineName     String  @default("SANIVEND Unit 01")
+  location        String  @default("ITECH Building, Floor 2")
+  ssid            String  @default("")
+  wifiPassword    String  @default("")
+  serverIp        String  @default("")
+  
+  slot1Threshold  Int     @default(5)
+  slot2Threshold  Int     @default(3)
+  slot3Threshold  Int     @default(3)
+  slot4Threshold  Int     @default(3)
+  
+  lowStockAlerts  Boolean @default(true)
+  errorAlerts     Boolean @default(true)
+  showPopup       Boolean @default(true)
+}
+
+model Admin {
+  id        Int     @id @default(1)
+  username  String  @unique
+  password  String
+}

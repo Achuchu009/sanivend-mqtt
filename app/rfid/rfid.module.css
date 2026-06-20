@@ -1,0 +1,237 @@
+/* app/rfid/rfid.module.css */
+
+/* ========================================= */
+/* 1. GLOBAL VARIABLES                       */
+/* ========================================= */
+:root {
+  --color-red: #E63946;
+  --color-white-bg: #F1FAEE;
+  --color-light-blue: #A8DADC;
+  --color-med-blue: #457B9D;
+  --color-dark-blue: #1D3557;
+  --color-pure-white: #FFFFFF;
+  --shadow-md: 0 10px 30px rgba(29, 53, 87, 0.12);
+  --shadow-sm: 0 4px 12px rgba(29, 53, 87, 0.08);
+}
+
+.container {
+    display: flex; width: 100%; height: 100vh;
+    background-color: var(--color-white-bg);
+    font-family: 'Poppins', sans-serif;
+    overflow: hidden; color: var(--color-dark-blue);
+}
+
+/* ========================================= */
+/* 2. SIDEBAR (STANDARD)                     */
+/* ========================================= */
+.sidebar {
+    width: 260px; background-color: var(--color-pure-white);
+    display: flex; flex-direction: column; padding: 24px 0;
+    border-right: 1px solid rgba(168, 218, 220, 0.4); 
+    height: 100%; z-index: 1000;
+    box-shadow: 2px 0 12px rgba(29, 53, 87, 0.03);
+}
+
+.logoSection { display: flex; align-items: center; gap: 12px; padding: 0 28px; margin-bottom: 40px; }
+.sanivend { font-family: 'Inter', sans-serif; font-weight: 800; font-size: 22px; color: var(--color-dark-blue); }
+.vend { color: var(--color-red); }
+.navMenu { display: flex; flex-direction: column; gap: 6px; padding: 0 16px; }
+.navItem {
+    display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+    cursor: pointer; color: var(--color-med-blue); font-weight: 500; font-size: 14px;
+    text-decoration: none; border-radius: 12px; transition: all 0.2s ease;
+}
+.navItem:hover { background-color: var(--color-white-bg); color: var(--color-dark-blue); transform: translateX(4px); }
+.activeNavItem { background-color: var(--color-red); color: var(--color-pure-white); font-weight: 600; box-shadow: 0 8px 16px rgba(230, 57, 70, 0.25); }
+.activeNavItem img { filter: brightness(0) invert(1); }
+.logoutSection { margin-top: auto; padding: 0 16px 20px 16px; }
+
+/* ========================================= */
+/* 3. MAIN CONTENT AREA                      */
+/* ========================================= */
+.mainContent { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background-color: var(--color-white-bg); }
+
+.header {
+    height: 80px; background-color: transparent; display: flex;
+    align-items: center; justify-content: space-between; padding: 0 40px; flex-shrink: 0;
+}
+.headerLeft { display: flex; align-items: center; gap: 20px; }
+.pageTitle { font-size: 22px; font-weight: 700; color: var(--color-dark-blue); letter-spacing: -0.3px; }
+.userProfile { 
+    display: flex; align-items: center; gap: 12px; 
+    font-size: 14px; font-weight: 600; color: var(--color-dark-blue);
+    background: var(--color-pure-white); padding: 8px 16px;
+    border-radius: 30px; border: 1px solid rgba(168, 218, 220, 0.5); 
+    box-shadow: 0 4px 12px rgba(29, 53, 87, 0.08); 
+}
+.menuIcon, .closeBtn { display: none; }
+
+/* ========================================= */
+/* 4. RFID PAGE SPECIFIC STYLES              */
+/* ========================================= */
+
+.contentArea { padding: 10px 40px 40px 40px; display: flex; flex-direction: column; gap: 24px; }
+
+/* --- 1. STATUS BAR --- */
+.statusBar {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--color-pure-white); border-radius: 20px; padding: 20px 30px;
+    box-shadow: var(--shadow-sm); border: 1px solid rgba(168, 218, 220, 0.3);
+}
+
+.statusItem { display: flex; align-items: center; gap: 16px; cursor: pointer; }
+.statusLabel { font-size: 13px; color: var(--color-med-blue); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+
+.statusBadgeContainer { 
+    display: flex; align-items: center; gap: 8px; 
+    background: #F8F9FA; padding: 6px 14px; border-radius: 20px; 
+}
+
+.statusBadge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; display: inline-block;}
+.statusSuccess { background-color: #E0F7FA; color: #006064; }
+.statusFailed {background-color: #FFEBEE; color: #C62828; }
+
+.statusText { font-size: 13px; font-weight: 600; }
+.textRed { color: var(--color-red); }
+.textGreen { color: #2A9D8F; }
+.textGray { color: #A0B2C6; }
+
+/* Pulsing Dot */
+.statusDot { width: 10px; height: 10px; border-radius: 50%; position: relative; }
+.dotGreen { background-color: #2A9D8F; box-shadow: 0 0 8px rgba(42, 157, 143, 0.6); }
+.dotRed { background-color: var(--color-red); }
+.dotGray { background-color: #CBD5E1; }
+
+/* --- 2. MAIN CARD (Split Layout) --- */
+.mainCard {
+    display: grid; grid-template-columns: 1fr 1.5fr;
+    background: var(--color-pure-white); border-radius: 24px;
+    overflow: hidden; min-height: 380px;
+    box-shadow: var(--shadow-md); border: 1px solid rgba(168, 218, 220, 0.5);
+}
+
+/* Left Side (Gradient Background) */
+.cardLeft {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px; background: linear-gradient(135deg, var(--color-light-blue) 0%, #F0FDFA 100%);
+    text-align: center; border-right: 1px solid rgba(168, 218, 220, 0.4);
+}
+
+.iconWrapper {
+    width: 120px; height: 120px; background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    margin-bottom: 24px; backdrop-filter: blur(10px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+}
+
+.largeIcon { width: 60px; height: 60px; opacity: 0.9; }
+.instructionText { font-size: 14px; color: var(--color-med-blue); line-height: 1.6; max-width: 260px; font-weight: 500; }
+
+/* Right Side (Form) */
+.cardRight {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 60px; background-color: var(--color-pure-white);
+}
+
+.balanceContainer { text-align: center; margin-bottom: 32px; width: 100%; }
+.balanceLabel { font-size: 13px; color: var(--color-med-blue); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px; }
+.balanceAmount { font-size: 56px; font-weight: 800; color: #CBD5E1; transition: color 0.3s; line-height: 1; }
+.balanceActive { color: var(--color-dark-blue); }
+
+.ownerBadge { 
+    display: inline-block; margin-top: 12px; padding: 6px 14px; 
+    border-radius: 20px; font-size: 12px; font-weight: 700; 
+}
+.ownerValid { background: #E8F5E9; color: #2E7D32; }
+.ownerInvalid { background: #FFEBEE; color: #C62828; }
+
+.inputWrapper { width: 100%; max-width: 380px; }
+.inputLabel { font-size: 13px; color: var(--color-dark-blue); margin-bottom: 10px; display: block; font-weight: 600; }
+
+.inputField {
+    width: 100%; height: 50px; padding: 0 16px; 
+    border: 2px solid rgba(168, 218, 220, 0.4); border-radius: 12px;
+    background-color: #F8FBFC; font-family: 'Poppins', sans-serif;
+    font-size: 16px; margin-bottom: 16px; box-sizing: border-box;
+    transition: all 0.2s; color: var(--color-dark-blue); font-weight: 600;
+}
+.inputField:focus { outline: none; border-color: var(--color-med-blue); background-color: #fff; box-shadow: 0 0 0 4px rgba(69, 123, 157, 0.1); }
+
+.confirmBtn {
+    width: 100%; height: 50px; background: #E2E8F0; border: none;
+    border-radius: 12px; font-weight: 700; font-size: 15px; color: #94A3B8;
+    cursor: not-allowed; transition: all 0.3s;
+}
+.confirmBtnActive { 
+    background: linear-gradient(135deg, var(--color-dark-blue) 0%, var(--color-med-blue) 100%);
+    color: white; cursor: pointer; box-shadow: 0 8px 20px rgba(29, 53, 87, 0.2);
+}
+.confirmBtnActive:hover { transform: translateY(-2px); background: var(--color-red); box-shadow: 0 8px 20px rgba(230, 57, 70, 0.3); }
+
+/* --- 3. HISTORY TABLE --- */
+.tableContainer {
+    border-radius: 20px; overflow: hidden; background: var(--color-pure-white);
+    box-shadow: var(--shadow-sm); border: 1px solid rgba(168, 218, 220, 0.3);
+}
+
+.tableHeaderTitle {
+    padding: 20px 28px; font-size: 16px; font-weight: 700; 
+    color: var(--color-dark-blue); border-bottom: 1px solid rgba(168, 218, 220, 0.3);
+}
+
+.historyTable { width: 100%; border-collapse: collapse; }
+
+.historyTable th { 
+    background-color: #F8FBFC; color: var(--color-med-blue); text-align: left; 
+    padding: 16px 28px; font-size: 12px; font-weight: 700; text-transform: uppercase;
+    border-bottom: 1px solid rgba(168, 218, 220, 0.3);
+}
+
+.historyTable td { 
+    padding: 18px 28px; font-size: 14px; color: var(--color-dark-blue); font-weight: 500;
+    border-bottom: 1px solid #f0f0f0; 
+}
+.historyTable tr:last-child td { border-bottom: none; }
+
+.statusPill {
+    background-color: #E0F7FA; color: #006064; padding: 4px 10px; 
+    border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+}
+
+/* --- TOAST --- */
+.toast {
+    position: fixed; bottom: 40px; right: 40px;
+    background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px);
+    padding: 18px 24px; border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(29, 53, 87, 0.2);
+    display: flex; align-items: center; gap: 14px;
+    z-index: 2000; min-width: 300px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    animation: slideUpFade 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.toastSuccess { border-left: 6px solid #2A9D8F; }
+.toastError { border-left: 6px solid #E63946; }
+.toastInfo { border-left: 6px solid #457B9D; }
+
+.toastIcon { display: flex; align-items: center; justify-content: center; }
+.toastMessage { font-size: 15px; font-weight: 600; color: var(--color-dark-blue); }
+
+@keyframes slideUpFade {
+    from { transform: translateY(100px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@media (max-width: 768px) {
+    .container { flex-direction: column; height: 100vh; overflow: hidden; }
+    .sidebar { position: fixed; top: 0; left: -100%; width: 260px; height: 100%; box-shadow: 4px 0 24px rgba(29, 53, 87, 0.15); transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .sidebarOpen { left: 0; }
+    .menuIcon, .closeBtn { display: block; }
+    .header { padding: 0 20px; }
+    .contentArea { padding: 20px; }
+    .statusBar { flex-direction: column; gap: 15px; align-items: flex-start; }
+    .mainCard { grid-template-columns: 1fr; }
+    .cardLeft { border-right: none; border-bottom: 1px solid rgba(168, 218, 220, 0.4); padding: 30px; }
+    .cardRight { padding: 30px; }
+    .toast { bottom: 20px; right: 20px; left: 20px; min-width: unset; }
+}

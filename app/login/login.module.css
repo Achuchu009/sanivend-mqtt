@@ -1,0 +1,186 @@
+/* app/login/login.module.css */
+
+/* ========================================= */
+/* 1. COLOR VARIABLES & GLOBAL SETTINGS      */
+/* ========================================= */
+:root {
+  /* Core Brand Palette from Dashboard */
+  --color-red: #E63946;
+  --color-white-bg: #F1FAEE;
+  --color-light-blue: #A8DADC;
+  --color-med-blue: #457B9D;
+  --color-dark-blue: #1D3557;
+  --color-pure-white: #FFFFFF;
+}
+
+/* --- THE CREATIVE MESH BACKGROUND --- */
+.container {
+    width: 100vw;  
+    height: 100vh; 
+    /* Dynamic Mesh Gradient using the Sanivend Palette */
+    background-color: var(--color-white-bg);
+    background-image: 
+        radial-gradient(at 0% 0%, var(--color-light-blue) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, var(--color-med-blue) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, var(--color-pure-white) 0px, transparent 50%);
+    display: flex;
+    align-items: center;     
+    justify-content: center; 
+    font-family: 'Poppins', sans-serif;
+    overflow: hidden; 
+}
+
+/* --- THE LOGIN CARD (GLASS EFFECT) --- */
+.loginCard {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px); /* Modern Glassmorphism */
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    width: 100%;
+    max-width: 420px; 
+    border-radius: 28px;
+    box-shadow: 0 24px 60px rgba(29, 53, 87, 0.15);
+    padding: 45px 40px;    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- LOGO SECTION --- */
+.logoIcon {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 10px; /* Increased slightly for better spacing */
+    filter: drop-shadow(0px 8px 16px rgba(29, 53, 87, 0.12));
+}
+
+.sanivend {
+    font-family: 'Inter', sans-serif;
+    font-size: 32px; 
+    font-weight: 800;
+    color: var(--color-dark-blue);
+    letter-spacing: -1px;
+}
+
+.vend { color: var(--color-red); }
+
+/* --- TEXT SECTION --- */
+.welcomeText {
+    text-align: center;
+    margin: 20px 0 35px 0;
+    width: 100%;
+}
+
+.welcomeTitle {
+    color: var(--color-med-blue);
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.loginTitle {
+    color: var(--color-dark-blue);
+    font-size: 24px;
+    font-weight: 700;
+}
+
+/* --- FORM SECTION --- */
+.form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px; 
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.label {
+    font-size: 13px;
+    color: var(--color-dark-blue);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+/* --- FIXED INPUT FIELDS --- */
+.inputField {
+    width: 100%;
+    height: 50px; 
+    padding: 0 16px;
+    border-radius: 12px;
+    border: 2px solid rgba(168, 218, 220, 0.4); 
+    background-color: var(--color-pure-white);
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    color: var(--color-dark-blue);
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+/* Fixes the Chrome Yellow/Green Autofill Bug */
+.inputField:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px var(--color-pure-white) inset;
+    -webkit-text-fill-color: var(--color-dark-blue);
+}
+
+.inputField:focus {
+    outline: none;
+    border-color: var(--color-med-blue);
+    box-shadow: 0 0 0 4px rgba(69, 123, 157, 0.15); 
+}
+
+/* --- LOGIN BUTTON --- */
+.loginButton {
+    height: 50px;
+    background: linear-gradient(135deg, var(--color-dark-blue) 0%, var(--color-med-blue) 100%);
+    color: var(--color-pure-white);
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(29, 53, 87, 0.2);
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+.loginButton:hover {
+    background: var(--color-red);
+    box-shadow: 0 10px 20px rgba(230, 57, 70, 0.3);
+    transform: translateY(-2px); 
+}
+
+.forgotPassword {
+    text-align: center;
+    font-size: 13px;
+    color: var(--color-med-blue);
+    cursor: pointer;
+    margin-top: 10px;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.forgotPassword:hover {
+    color: var(--color-red);
+    text-decoration: underline;
+}
+
+/* --- FOOTER --- */
+.footerVersion {
+    margin-top: 24px;
+    font-size: 11px;
+    color: var(--color-med-blue);
+    text-align: center;
+    opacity: 0.6;
+}
