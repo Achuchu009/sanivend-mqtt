@@ -54,7 +54,7 @@ export default function RegisterCardPage() {
 
     // --- ADDED UI STATES ---
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-    const [deleteModal, setDeleteModal] = useState({ show: false, id: null });
+    const [deleteModal, setDeleteModal] = useState({ show: false, id: null, uid: null });
 
     const [uid, setUid] = useState('');
     const [ownerName, setOwnerName] = useState('');
@@ -124,12 +124,13 @@ export default function RegisterCardPage() {
     };
 
     // --- CUSTOM DELETE FUNCTIONS ---
-    const initiateDelete = (id) => {
-        setDeleteModal({ show: true, id });
+    const initiateDelete = (id, cardUid) => {
+        setDeleteModal({ show: true, id, uid: cardUid });
     };
 
     const confirmDelete = async () => {
         const id = deleteModal.id;
+        const deletedUid = deleteModal.uid;
         try {
             const res = await fetch('/api/rfid', {
                 method: 'DELETE',
@@ -139,6 +140,23 @@ export default function RegisterCardPage() {
             if (res.ok) {
                 mutate('/api/rfid?type=recent');
                 showToast("Card deleted permanently.", "success");
+
+                // If the deleted card is currently on the scanner, zero its chip
+                // so it can no longer be used at the vending machine or Top-Up page.
+                if (writerRef.current && deletedUid && deletedUid === uid) {
+                    try {
+                        await writerRef.current.write('SET:0\n');
+                        // Reset the scanner UI so the card now appears as unregistered
+                        setUid('');
+                        setOwnerName('');
+                        setInitialLoad('');
+                        setIsRegistered(false);
+                        processedRef.current = '';
+                        lastUidRef.current = '';
+                    } catch (writeErr) {
+                        console.error('Failed to zero card chip:', writeErr);
+                    }
+                }
             } else {
                 showToast("Failed to delete card.", "error");
             }
@@ -146,7 +164,7 @@ export default function RegisterCardPage() {
             console.error("System Error", err);
             showToast("System error occurred.", "error");
         } finally {
-            setDeleteModal({ show: false, id: null });
+            setDeleteModal({ show: false, id: null, uid: null });
         }
     };
 
@@ -324,7 +342,7 @@ export default function RegisterCardPage() {
                         isWritingCardRef.current = true;
                         pendingSetBalanceRef.current = parseFloat(initialLoad);
                         setIsWritingCard(true);
-                        showToast("⏳ Writing balance to card... DO NOT REMOVE", "info");
+                        showToast("Writing balance to card... DO NOT REMOVE", "info");
                         await writerRef.current.write(`SET:${initialLoad}\n`);
                     } catch (writeErr) {
                         console.error("Serial write failed:", writeErr);
@@ -357,26 +375,26 @@ export default function RegisterCardPage() {
                 try {
                     // 1. Close the writer (unlocks the writable stream pipe)
                     if (writerRef.current) {
-                        await writerRef.current.close().catch(() => {});
+                        await writerRef.current.close().catch(() => { });
                         writerRef.current = null;
                     }
                     // 2. Cancel the reader (unlocks the readable stream pipe)
                     if (readerRef.current) {
-                        await readerRef.current.cancel().catch(() => {});
+                        await readerRef.current.cancel().catch(() => { });
                         readerRef.current = null;
                     }
                     // 3. Wait for the pipe promises to settle
                     if (writableClosedRef.current) {
-                        await writableClosedRef.current.catch(() => {});
+                        await writableClosedRef.current.catch(() => { });
                         writableClosedRef.current = null;
                     }
                     if (readableClosedRef.current) {
-                        await readableClosedRef.current.catch(() => {});
+                        await readableClosedRef.current.catch(() => { });
                         readableClosedRef.current = null;
                     }
                     // 4. Now close the port (streams are unlocked)
                     if (portRef.current) {
-                        await portRef.current.close().catch(() => {});
+                        await portRef.current.close().catch(() => { });
                         portRef.current = null;
                     }
                 } catch (e) {
@@ -608,7 +626,7 @@ export default function RegisterCardPage() {
                                                         <EditIcon />
                                                     </button>
                                                     {/* CHANGED THIS ONCLICK */}
-                                                    <button className={`${styles.iconBtn} ${styles.btnDelete}`} onClick={() => initiateDelete(card.id)} title="Delete Card">
+                                                    <button className={`${styles.iconBtn} ${styles.btnDelete}`} onClick={() => initiateDelete(card.id, card.uid)} title="Delete Card">
                                                         <TrashIcon />
                                                     </button>
                                                 </>
@@ -653,7 +671,7 @@ export default function RegisterCardPage() {
                 {/* --- PREMIUM TOAST NOTIFICATION --- */}
                 {toast.show && (
                     <div className={`${styles.toast} ${toast.type === 'error' ? styles.toastError :
-                            toast.type === 'success' ? styles.toastSuccess : styles.toastInfo
+                        toast.type === 'success' ? styles.toastSuccess : styles.toastInfo
                         }`}>
                         <span className={styles.toastIcon}>
                             {toast.type === 'success' ? <SuccessIcon /> : toast.type === 'error' ? <ErrorIcon /> : <InfoIcon />}

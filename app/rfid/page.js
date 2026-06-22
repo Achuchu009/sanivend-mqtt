@@ -38,6 +38,7 @@ export default function RFIDPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [isWriting, setIsWriting] = useState(false);
   const [currentCard, setCurrentCard] = useState(null);
+  const [isChecking, setIsChecking] = useState(false);
 
   const portRef = useRef(null);
   const writerRef = useRef(null);
@@ -48,6 +49,7 @@ export default function RFIDPage() {
   const isReadingRef = useRef(false);
   const isWritingRef = useRef(false);
   const amountRef = useRef('');
+  const cardRegisteredRef = useRef(true); // optimistic: show chip balance until DB says otherwise
 
   // NEW: Ref to keep track of UID inside the serial loop
   const uidRef = useRef('');
@@ -85,6 +87,8 @@ export default function RFIDPage() {
         amountRef.current = '';
         setOwner('');
         setCurrentCard(null);
+        setIsChecking(false);
+        cardRegisteredRef.current = true; // reset to optimistic for next card
         if (!isWritingRef.current) showToast("Card Removed.", "error");
       }
     }, 500);
@@ -158,12 +162,17 @@ export default function RFIDPage() {
 
                   setUid((prevUid) => {
                     if (prevUid !== scannedUid) {
+                      setIsChecking(true);
                       handleCheckCard(scannedUid);
                     }
                     return scannedUid;
                   });
 
-                  setBalance(scannedBal);
+                  // Only show chip balance for registered cards.
+                  // Unregistered cards always display ₱0.
+                  if (cardRegisteredRef.current) {
+                    setBalance(scannedBal);
+                  }
 
                   // If writing was active, it means this scan confirms success
                   if (isWritingRef.current) {
@@ -288,6 +297,19 @@ export default function RFIDPage() {
       if (res.status === 404) {
         setCurrentCard(null);
         setOwner("Unregistered");
+        setBalance(0);
+        cardRegisteredRef.current = false;
+
+        // Physically zero the chip so the vending machine can't use it either.
+        // This covers the case where the card was deleted while not on the scanner.
+        if (writerRef.current) {
+          try {
+            await writerRef.current.write('SET:0\n');
+          } catch (e) {
+            console.error('Failed to zero chip:', e);
+          }
+        }
+
         showToast("Card Not Registered!", "error");
         return;
       }
@@ -296,8 +318,13 @@ export default function RFIDPage() {
       if (res.ok) {
         setCurrentCard(data);
         setOwner(data.owner);
+        cardRegisteredRef.current = true;
+        setBalance(parseFloat(data.balance)); // ensure it's a number for .toFixed()
       }
     } catch (err) { console.error(err); }
+    finally {
+      setIsChecking(false);
+    }
   };
 
   // UPDATED: Now accepts 'status'
@@ -441,9 +468,9 @@ export default function RFIDPage() {
               <div className={styles.balanceContainer}>
                 <span className={styles.balanceLabel}>Current Balance</span>
                 <div className={`${styles.balanceAmount} ${uid ? styles.balanceActive : ''}`}>
-                  Php {balance.toFixed(2)}
+                  {isChecking ? "Checking..." : `Php ${balance.toFixed(2)}`}
                 </div>
-                {uid && (
+                {uid && !isChecking && (
                   <div className={`${styles.ownerBadge} ${currentCard ? styles.ownerValid : styles.ownerInvalid}`}>
                     {currentCard ? `Owner: ${owner}` : "UNREGISTERED CARD"}
                   </div>
