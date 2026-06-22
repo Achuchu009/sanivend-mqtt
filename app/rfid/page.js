@@ -260,8 +260,10 @@ export default function RFIDPage() {
     // Auto-connect to an already-approved port when navigating to this page.
     // This means switching from Register Card → Top-Up works without replug.
     navigator.serial.getPorts().then((ports) => {
-      if (ports.length > 0 && !isReadingRef.current) {
-        startReading(ports[0]);
+      // Filter for actual USB devices (ignores internal COM/Bluetooth ports)
+      const usbPorts = ports.filter(p => p.getInfo().usbVendorId);
+      if (usbPorts.length > 0 && !isReadingRef.current) {
+        startReading(usbPorts[0]);
       }
     });
 
