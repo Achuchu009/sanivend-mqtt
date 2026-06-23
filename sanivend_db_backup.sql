@@ -66,8 +66,37 @@ CREATE TABLE `inventory` (
 
 LOCK TABLES `inventory` WRITE;
 /*!40000 ALTER TABLE `inventory` DISABLE KEYS */;
-INSERT INTO `inventory` VALUES ('slot1','Panty Liners',5.00,8,16,'2026-06-18 04:50:53.393','2026-06-18 05:05:16.394'),('slot2','Regular Pads',10.00,3,10,'2026-06-18 04:50:42.497','2026-06-18 05:03:53.147'),('slot3','Heavy Flow Pads',20.00,4,10,'2026-06-18 04:50:59.067','2026-06-18 05:03:18.903'),('slot4','Personal Hygiene Wipes',15.00,5,10,'2026-06-18 04:51:05.266','2026-06-18 05:06:42.725');
+INSERT INTO `inventory` VALUES ('slot1','Panty Liners',5.00,16,16,'2026-06-22 22:48:26.632','2026-06-22 22:48:26.634'),('slot2','Regular Pads',10.00,9,10,'2026-06-22 22:48:20.903','2026-06-22 22:48:20.906'),('slot3','Heavy Flow Pads',20.00,10,10,'2026-06-22 22:48:34.407','2026-06-22 22:48:34.410'),('slot4','Personal Hygiene Wipes',15.00,10,10,'2026-06-22 22:48:39.115','2026-06-22 22:48:39.117');
 /*!40000 ALTER TABLE `inventory` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `refill_history`
+--
+
+DROP TABLE IF EXISTS `refill_history`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `refill_history` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `slotId` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `productName` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `addedStock` int NOT NULL,
+  `newStock` int NOT NULL,
+  `createdAt` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`),
+  KEY `refill_history_slotId_fkey` (`slotId`),
+  CONSTRAINT `refill_history_slotId_fkey` FOREIGN KEY (`slotId`) REFERENCES `inventory` (`slotId`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `refill_history`
+--
+
+LOCK TABLES `refill_history` WRITE;
+/*!40000 ALTER TABLE `refill_history` DISABLE KEYS */;
+/*!40000 ALTER TABLE `refill_history` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -87,7 +116,7 @@ CREATE TABLE `rfid_cards` (
   `isActive` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
   UNIQUE KEY `rfid_cards_uid_key` (`uid`)
-) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -96,7 +125,7 @@ CREATE TABLE `rfid_cards` (
 
 LOCK TABLES `rfid_cards` WRITE;
 /*!40000 ALTER TABLE `rfid_cards` DISABLE KEYS */;
-INSERT INTO `rfid_cards` VALUES (1,'711C2317','Trial Student 1',955.00,'2026-06-18 05:03:58.619','2026-06-18 05:06:43.234',1),(18,'D6AFA505','Trial Student 2',40.00,'2026-06-11 02:18:12.629','2026-06-18 05:03:53.611',1),(28,'710D4817','me',780.00,'2026-06-20 08:59:36.397','2026-06-20 08:59:36.400',1);
+INSERT INTO `rfid_cards` VALUES (1,'711C2317','Trial Student 1',955.00,'2026-06-18 05:03:58.619','2026-06-18 05:06:43.234',1),(18,'D6AFA505','Trial Student 2',40.00,'2026-06-11 02:18:12.629','2026-06-18 05:03:53.611',1);
 /*!40000 ALTER TABLE `rfid_cards` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -237,4 +266,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-22 16:34:37
+-- Dump completed on 2026-06-23  9:01:48
