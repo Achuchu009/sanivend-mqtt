@@ -27,6 +27,7 @@ const InfoIcon = () => (
 );
 
 export default function RFIDPage() {
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
@@ -54,7 +55,7 @@ export default function RFIDPage() {
   // NEW: Ref to keep track of UID inside the serial loop
   const uidRef = useRef('');
 
-  const { data: history } = useSWR('/api/rfid?type=history', fetcher, { refreshInterval: 2000 });
+  const { data: history } = useSWR(`/api/rfid?type=history${uid ? `&uid=${uid}` : ''}`, fetcher, { refreshInterval: 2000 });
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -168,16 +169,11 @@ export default function RFIDPage() {
                     return scannedUid;
                   });
 
-                  // Only show chip balance for registered cards.
-                  // Unregistered cards always display ₱0.
-                  if (cardRegisteredRef.current) {
-                    setBalance(scannedBal);
-                  }
-
                   // If writing was active, it means this scan confirms success
                   if (isWritingRef.current) {
                     // Log Success
                     syncBalanceToDB(scannedUid, scannedBal, amountRef.current, "Success");
+                    setBalance(scannedBal); // Update UI to new chip balance
                     isWritingRef.current = false;
                     setIsWriting(false);
                     setAmount('');
@@ -396,17 +392,7 @@ export default function RFIDPage() {
             <Image src="/error-icon.svg" width={20} height={20} alt="Errors" />
             <span>Error Alerts</span>
           </Link>
-          <Link href="/settings" className={styles.navItem}>
-            <Image src="/settings-icon.svg" width={20} height={20} alt="Settings" />
-            <span>Settings</span>
-          </Link>
         </nav>
-        <div className={styles.logoutSection}>
-          <Link href="/login" className={styles.navItem}>
-            <Image src="/logout-icon.svg" width={20} height={20} alt="Logout" />
-            <span>Logout</span>
-          </Link>
-        </div>
       </aside>
 
       {/* MAIN CONTENT */}
@@ -416,9 +402,15 @@ export default function RFIDPage() {
           <div className={styles.headerLeft}>
             <div className={styles.pageTitle}>RFID CARD TOP-UP</div>
           </div>
-          <div className={styles.userProfile}>
-            <span>Juan Dela Cruz</span>
+          <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} style={{position: 'relative', cursor: 'pointer'}}>
+            <span>Admin</span>
             <Image src="/user-profile.svg" width={30} height={30} alt="User" />
+            {isProfileDropdownOpen && (
+                <div className="profileDropdown">
+                    <div className="dropdownItem" onClick={() => window.location.href = '/settings'}>Settings</div>
+                    <div className="dropdownItem" onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}>Logout</div>
+                </div>
+            )}
           </div>
         </header>
 

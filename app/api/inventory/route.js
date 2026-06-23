@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 export async function GET(req) {
   try {
     const sessionToken = req.cookies.get('admin_session');
-    if (!sessionToken) {
+    if (!sessionToken || sessionToken.value !== process.env.SERVER_RUN_ID) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
 
@@ -45,12 +45,21 @@ export async function GET(req) {
 export async function PUT(request) {
   try {
     const sessionToken = request.cookies.get('admin_session');
-    if (!sessionToken) {
+    if (!sessionToken || sessionToken.value !== process.env.SERVER_RUN_ID) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
 
     const body = await request.json();
     const { slotId, newStock, newMax, newPrice } = body;
+
+    const currentItem = await prisma.inventory.findUnique({ where: { slotId: slotId } });
+    
+    if (!currentItem) {
+      return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+    }
+
+    const currentStock = currentItem.stock;
+    const addedStock = parseInt(newStock) - currentStock;
 
     const updatedItem = await prisma.inventory.update({
       where: { slotId: slotId },
@@ -58,9 +67,20 @@ export async function PUT(request) {
         stock: parseInt(newStock),
         maxCapacity: parseInt(newMax),
         unitPrice: parseFloat(newPrice),
-        lastRefill: new Date()
+        lastRefill: addedStock > 0 ? new Date() : currentItem.lastRefill
       }
     });
+
+    if (addedStock > 0) {
+      await prisma.refillHistory.create({
+        data: {
+          slotId: updatedItem.slotId,
+          productName: updatedItem.productName,
+          addedStock: addedStock,
+          newStock: updatedItem.stock
+        }
+      });
+    }
 
     // ✨ Broadcast updated stock and price to the vending machine immediately
     const brokerUrl = process.env.MQTT_BROKER_URL || 'mqtt://localhost';

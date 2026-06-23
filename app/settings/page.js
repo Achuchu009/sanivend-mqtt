@@ -25,6 +25,7 @@ const SuccessIcon = () => (
 );
 
 export default function SettingsPage() {
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '' });
   const [isLoading, setIsLoading] = useState(true);
@@ -146,17 +147,9 @@ export default function SettingsPage() {
             <Image src="/error-icon.svg" width={20} height={20} alt="Errors" />
             <span>Error Alerts</span>
           </Link>
-          <div className={`${styles.navItem} ${styles.activeNavItem}`}>
-            <Image src="/settings-icon.svg" width={20} height={20} alt="Settings" />
-            <span>Settings</span>
-          </div>
+          
         </nav>
-        <div className={styles.logoutSection}>
-          <div className={styles.navItem} onClick={handleLogout} style={{cursor: 'pointer'}}>
-            <Image src="/logout-icon.svg" width={20} height={20} alt="Logout" />
-            <span>Logout</span>
-          </div>
-        </div>
+        
       </aside>
 
       {/* MAIN CONTENT */}
@@ -166,10 +159,16 @@ export default function SettingsPage() {
             <div className={styles.headerLeft}>
                 <div className={styles.pageTitle}>SETTINGS</div>
             </div>
-            <div className={styles.userProfile}>
-                <span>Juan Dela Cruz</span>
-                <Image src="/user-profile.svg" width={30} height={30} alt="User" />
-            </div>
+            <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} style={{position: 'relative', cursor: 'pointer'}}>
+            <span>Admin</span>
+            <Image src="/user-profile.svg" width={30} height={30} alt="User" />
+            {isProfileDropdownOpen && (
+                <div className="profileDropdown">
+                    <div className="dropdownItem" onClick={() => window.location.href = '/settings'}>Settings</div>
+                    <div className="dropdownItem" onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}>Logout</div>
+                </div>
+            )}
+          </div>
         </header>
 
         <div className={styles.contentArea}>

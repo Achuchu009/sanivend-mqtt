@@ -11,6 +11,7 @@ import useSWR from 'swr';
 const fetcher = (...args) => fetch(...args).then(res => res.json());
 
 export default function Dashboard() {
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
@@ -145,18 +146,10 @@ export default function Dashboard() {
             <Image src="/error-icon.svg" width={20} height={20} alt="Errors" />
             <span>Error Alerts</span>
           </Link>
-          <Link href="/settings" className={styles.navItem}>
-            <Image src="/settings-icon.svg" width={20} height={20} alt="Settings" />
-            <span>Settings</span>
-          </Link>
+          
         </nav>
 
-        <div className={styles.logoutSection}>
-          <div className={styles.navItem} onClick={handleLogout} style={{cursor: 'pointer'}}>
-            <Image src="/logout-icon.svg" width={20} height={20} alt="Logout" />
-            <span>Logout</span>
-          </div>
-        </div>
+        
       </aside>
 
       {/* --- MAIN CONTENT --- */}
@@ -167,10 +160,16 @@ export default function Dashboard() {
             <div className={styles.headerLeft}>
                 <div className={styles.pageTitle}>DASHBOARD OVERVIEW</div>
             </div>
-            <div className={styles.userProfile}>
-                <span>Juan Dela Cruz</span>
-                <Image src="/user-profile.svg" width={30} height={30} alt="User" />
-            </div>
+            <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} style={{position: 'relative', cursor: 'pointer'}}>
+            <span>Admin</span>
+            <Image src="/user-profile.svg" width={30} height={30} alt="User" />
+            {isProfileDropdownOpen && (
+                <div className="profileDropdown">
+                    <div className="dropdownItem" onClick={() => window.location.href = '/settings'}>Settings</div>
+                    <div className="dropdownItem" onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}>Logout</div>
+                </div>
+            )}
+          </div>
         </header>
 
         <div className={styles.dashboardContent}>
@@ -291,47 +290,47 @@ export default function Dashboard() {
                     
                     <div className={styles.modalBody}>
                         
-                        {notifData.enableLowStock && (
-                            <>
+                        {notifData.enableLowStock && notifData.lowStockCount > 0 && (
+                            <div className={styles.statRow} onClick={() => router.push('/stock')}>
                                 {/* ROW 1: LOW STOCK */}
-                                <div className={styles.statRow} onClick={() => router.push('/stock')}>
-                                    <div className={styles.statRowHeader}>
-                                        <span className={styles.statLabel}>Low Stock Items</span>
-                                        <span className={notifData.lowStockCount > 0 ? styles.countOrange : styles.countGreen}>
-                                            {notifData.lowStockCount}
-                                        </span>
-                                    </div>
-                                    <div className={styles.statSubtext}>
-                                        {notifData.lowStockNames || "Stock levels are good."}
-                                    </div>
+                                <div className={styles.statRowHeader}>
+                                    <span className={styles.statLabel}>Low Stock Items</span>
+                                    <span className={styles.countOrange}>
+                                        {notifData.lowStockCount}
+                                    </span>
                                 </div>
-
-                                {/* ROW 2: OUT OF STOCK */}
-                                <div className={styles.statRow} onClick={() => router.push('/stock')}>
-                                    <div className={styles.statRowHeader}>
-                                        <span className={styles.statLabel}>Out of Stock</span>
-                                        <span className={notifData.outOfStockCount > 0 ? styles.countRed : styles.countGreen}>
-                                            {notifData.outOfStockCount}
-                                        </span>
-                                    </div>
-                                    <div className={styles.statSubtext}>
-                                        {notifData.outOfStockNames || "No items out of stock."}
-                                    </div>
+                                <div className={styles.statSubtext}>
+                                    {notifData.lowStockNames}
                                 </div>
-                            </>
+                            </div>
                         )}
 
-                        {notifData.enableErrors && (
+                        {notifData.enableLowStock && notifData.outOfStockCount > 0 && (
+                            <div className={styles.statRow} onClick={() => router.push('/stock')}>
+                                {/* ROW 2: OUT OF STOCK */}
+                                <div className={styles.statRowHeader}>
+                                    <span className={styles.statLabel}>Out of Stock</span>
+                                    <span className={styles.countRed}>
+                                        {notifData.outOfStockCount}
+                                    </span>
+                                </div>
+                                <div className={styles.statSubtext}>
+                                    {notifData.outOfStockNames}
+                                </div>
+                            </div>
+                        )}
+
+                        {notifData.enableErrors && notifData.activeErrors > 0 && (
                             <div className={styles.statRow} onClick={() => router.push('/errors')}>
                                 {/* ROW 3: SYSTEM ERRORS */}
                                 <div className={styles.statRowHeader}>
                                     <span className={styles.statLabel}>Active Alerts</span>
-                                    <span className={notifData.activeErrors > 0 ? styles.countRed : styles.countGreen}>
+                                    <span className={styles.countRed}>
                                         {notifData.activeErrors}
                                     </span>
                                 </div>
                                 <div className={styles.statSubtext}>
-                                    {notifData.errorMessages || "System is running smoothly."}
+                                    {notifData.errorMessages}
                                 </div>
                             </div>
                         )}

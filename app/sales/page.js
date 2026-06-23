@@ -37,6 +37,7 @@ const InfoIcon = () => (
 
 export default function SalesPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   const now = new Date();
@@ -51,10 +52,11 @@ export default function SalesPage() {
 
   const [filterSlot, setFilterSlot] = useState('All');
   const [filterPayment, setFilterPayment] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  useEffect(() => { setCurrentPage(1); }, [filterSlot, filterPayment, selectedMonth, selectedYear]);
+  useEffect(() => { setCurrentPage(1); }, [filterSlot, filterPayment, selectedMonth, selectedYear, searchQuery]);
 
   const showToast = (message, type = 'success') => {
       setToast({ show: true, message, type });
@@ -69,7 +71,15 @@ export default function SalesPage() {
   const filteredSales = data.sales.filter(sale => {
     const matchSlot = filterSlot === 'All' || sale.slotId === filterSlot;
     const matchPayment = filterPayment === 'All' || sale.paymentMethod === filterPayment;
-    return matchSlot && matchPayment;
+    
+    const query = searchQuery.toLowerCase();
+    const dateStr = new Date(sale.createdAt).toLocaleString().toLowerCase();
+    const matchSearch = !searchQuery || 
+      (sale.itemName && sale.itemName.toLowerCase().includes(query)) ||
+      (sale.slotId && sale.slotId.toLowerCase().includes(query)) ||
+      (dateStr.includes(query));
+
+    return matchSlot && matchPayment && matchSearch;
   });
 
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -183,17 +193,7 @@ export default function SalesPage() {
             <Image src="/error-icon.svg" width={20} height={20} alt="Errors" />
             <span>Error Alerts</span>
           </Link>
-          <Link href="/settings" className={styles.navItem}>
-            <Image src="/settings-icon.svg" width={20} height={20} alt="Settings" />
-            <span>Settings</span>
-          </Link>
         </nav>
-        <div className={styles.logoutSection}>
-          <Link href="/login" className={styles.navItem}>
-            <Image src="/logout-icon.svg" width={20} height={20} alt="Logout" />
-            <span>Logout</span>
-          </Link>
-        </div>
       </aside>
 
       {/* MAIN CONTENT */}
@@ -203,9 +203,15 @@ export default function SalesPage() {
             <div className={styles.headerLeft}>
                 <div className={styles.pageTitle}>SALES ANALYTICS</div>
             </div>
-            <div className={styles.userProfile}>
-                <span>Juan Dela Cruz</span>
+            <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} style={{position: 'relative', cursor: 'pointer'}}>
+                <span>Admin</span>
                 <Image src="/user-profile.svg" width={30} height={30} alt="User" />
+                {isProfileDropdownOpen && (
+                    <div className="profileDropdown">
+                        <div className="dropdownItem" onClick={() => window.location.href = '/settings'}>Settings</div>
+                        <div className="dropdownItem" onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}>Logout</div>
+                    </div>
+                )}
             </div>
         </header>
 
@@ -375,6 +381,22 @@ export default function SalesPage() {
                             <option value="Cash">Cash</option>
                             <option value="RFID">RFID Card</option>
                         </select>
+                    </div>
+                    <div className={styles.filterGroup} style={{ marginLeft: 'auto' }}>
+                        <div style={{ position: 'relative' }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input 
+                                type="text" 
+                                placeholder="Search items..." 
+                                className={styles.selectInput} 
+                                style={{ paddingLeft: '36px', minWidth: '200px' }}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

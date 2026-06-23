@@ -8,8 +8,8 @@ const prisma = new PrismaClient();
 export async function GET(req) {
   try {
     const sessionToken = req.cookies.get('admin_session');
-    if (!sessionToken) {
-      return NextResponse.json({ error: "Unauthorized access. Please log in." }, { status: 401 });
+    if (!sessionToken || sessionToken.value !== process.env.SERVER_RUN_ID) {
+      return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
     }
 
     const settings = await prisma.systemSettings.findUnique({ where: { id: 1 } });
@@ -46,8 +46,8 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const sessionToken = req.cookies.get('admin_session');
-    if (!sessionToken) {
-      return NextResponse.json({ success: false, error: 'Unauthorized. Please log in as admin.' }, { status: 401 });
+    if (!sessionToken || sessionToken.value !== process.env.SERVER_RUN_ID) {
+      return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
     }
 
     const body = await req.json();

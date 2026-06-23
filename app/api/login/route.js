@@ -26,10 +26,10 @@ export async function POST(req) {
     
     response.cookies.set({
       name: 'admin_session',
-      value: 'active', // In a larger app, this would be a secure JWT string
+      value: process.env.SERVER_RUN_ID, // Use the server run ID as the session token
       httpOnly: true,
-      path: '/',
-      maxAge: 60 * 60 * 24 // Expires in 1 day
+      path: '/'
+      // maxAge removed to make it a Session Cookie (expires when browser closes)
     });
 
     return response;

@@ -254,3 +254,23 @@
     /* Input Stack Fix for Mobile */
     .inputsGrid { grid-template-columns: 1fr; }
 }
+/* TABLE STYLES */
+.tableContainer {
+  border-radius: 20px; overflow: hidden; background: var(--color-pure-white);
+  box-shadow: var(--shadow-sm); border: 1px solid rgba(168, 218, 220, 0.3);
+}
+.tableHeaderTitle {
+  padding: 20px 28px; font-size: 16px; font-weight: 700;
+  color: var(--color-dark-blue); border-bottom: 1px solid rgba(168, 218, 220, 0.3);
+}
+.historyTable { width: 100%; border-collapse: collapse; }
+.historyTable th {
+  background-color: #F8FBFC; color: var(--color-med-blue); text-align: left;
+  padding: 16px 28px; font-size: 12px; font-weight: 700; text-transform: uppercase;
+  border-bottom: 1px solid rgba(168, 218, 220, 0.3);
+}
+.historyTable td {
+  padding: 18px 28px; font-size: 14px; color: var(--color-dark-blue); font-weight: 500;
+  border-bottom: 1px solid #f0f0f0;
+}
+.historyTable tr:last-child td { border-bottom: none; }

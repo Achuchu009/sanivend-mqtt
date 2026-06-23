@@ -51,6 +51,7 @@ const InfoIcon = () => (
 
 export default function RegisterCardPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
     // --- ADDED UI STATES ---
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
@@ -83,6 +84,16 @@ export default function RegisterCardPage() {
     const lastUidRef = useRef('');            // persists after removal — used to detect genuinely new cards
 
     const { data: recentCards } = useSWR('/api/rfid?type=recent', fetcher, { refreshInterval: 2000 });
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredCards = Array.isArray(recentCards) ? recentCards.filter(card => {
+        const query = searchQuery.toLowerCase();
+        const dateStr = new Date(card.lastLoaded).toLocaleDateString().toLowerCase();
+        return !searchQuery ||
+            (card.owner && card.owner.toLowerCase().includes(query)) ||
+            (card.uid && card.uid.toLowerCase().includes(query)) ||
+            (dateStr.includes(query));
+    }) : [];
 
     const maskUid = (rawUid) => {
         if (!rawUid) return "********";
@@ -475,17 +486,7 @@ export default function RegisterCardPage() {
                         <Image src="/error-icon.svg" width={20} height={20} alt="Errors" />
                         <span>Error Alerts</span>
                     </Link>
-                    <Link href="/settings" className={styles.navItem}>
-                        <Image src="/settings-icon.svg" width={20} height={20} alt="Settings" />
-                        <span>Settings</span>
-                    </Link>
                 </nav>
-                <div className={styles.logoutSection}>
-                    <Link href="/login" className={styles.navItem}>
-                        <Image src="/logout-icon.svg" width={20} height={20} alt="Logout" />
-                        <span>Logout</span>
-                    </Link>
-                </div>
             </aside>
 
             <main className={styles.mainContent}>
@@ -494,9 +495,15 @@ export default function RegisterCardPage() {
                     <div className={styles.headerLeft}>
                         <div className={styles.pageTitle}>REGISTER NEW CARD</div>
                     </div>
-                    <div className={styles.userProfile}>
-                        <span>Juan Dela Cruz</span>
+                    <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} style={{position: 'relative', cursor: 'pointer'}}>
+                        <span>Admin</span>
                         <Image src="/user-profile.svg" width={30} height={30} alt="User" />
+                        {isProfileDropdownOpen && (
+                            <div className="profileDropdown">
+                                <div className="dropdownItem" onClick={() => window.location.href = '/settings'}>Settings</div>
+                                <div className="dropdownItem" onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}>Logout</div>
+                            </div>
+                        )}
                     </div>
                 </header>
 
@@ -583,7 +590,22 @@ export default function RegisterCardPage() {
 
                     {/* 3. RECENT REGISTRATIONS TABLE */}
                     <div className={styles.tableContainer}>
-                        <div className={styles.tableHeaderTitle}>Recent Registrations</div>
+                        <div className={styles.tableHeaderTitle} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>Recent Registrations</span>
+                            <div style={{ position: 'relative' }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <input 
+                                    type="text" 
+                                    placeholder="Search owner or ID..." 
+                                    style={{ padding: '8px 16px 8px 36px', borderRadius: '12px', border: '1.5px solid rgba(168, 218, 220, 0.5)', background: '#F8FBFC', fontSize: '13px', outline: 'none', minWidth: '220px', color: '#1D3557' }}
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                        </div>
                         <table className={styles.historyTable}>
                             <thead>
                                 <tr>
@@ -595,7 +617,7 @@ export default function RegisterCardPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {Array.isArray(recentCards) && recentCards.map((card) => (
+                                {filteredCards.map((card) => (
                                     <tr key={card.id}>
                                         <td>{new Date(card.lastLoaded).toLocaleDateString()}</td>
                                         <td>{maskUid(card.uid)}</td>

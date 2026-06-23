@@ -13,6 +13,7 @@ export async function GET(request) {
     // -------------------------------------------
     if (type === 'history') {
       const history = await prisma.rFIDTransaction.findMany({
+        where: uid ? { cardUid: uid } : {},
         orderBy: { createdAt: 'desc' },
         take: 10 
       });

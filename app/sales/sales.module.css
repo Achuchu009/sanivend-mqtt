@@ -112,9 +112,10 @@
     background: var(--color-pure-white); border-radius: 20px; padding: 20px 28px;
     box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: space-between; gap: 20px;
     border: 1px solid rgba(168, 218, 220, 0.3);
+    flex-wrap: wrap;
 }
-.filterTitle { font-size: 16px; font-weight: 700; color: var(--color-dark-blue); display: flex; align-items: center; gap: 10px; }
-.filterControls { display: flex; gap: 24px; align-items: center; }
+.filterTitle { font-size: 16px; font-weight: 700; color: var(--color-dark-blue); display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.filterControls { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
 .filterGroup { display: flex; align-items: center; gap: 12px; }
 .filterLabel { font-size: 13px; font-weight: 600; color: var(--color-med-blue); }
 

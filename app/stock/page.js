@@ -30,6 +30,7 @@ const InfoIcon = () => (
 );
 
 export default function StockPage() {
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const { data: inventory, error } = useSWR('/api/inventory', fetcher);
@@ -37,6 +38,28 @@ export default function StockPage() {
   
   // Local state for inputs
   const [editValues, setEditValues] = useState({});
+
+  const [refillHistory, setRefillHistory] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+
+  const fetchHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const res = await fetch('/api/refills');
+      if (res.ok) {
+        const data = await res.json();
+        setRefillHistory(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setIsLoadingHistory(false);
+  };
+
+  // Fetch history on load and when inventory updates
+  useEffect(() => {
+    fetchHistory();
+  }, [inventory]);
 
   // Initialize: Set Stock to EMPTY STRING so placeholder shows
   useEffect(() => {
@@ -185,18 +208,10 @@ export default function StockPage() {
             <Image src="/error-icon.svg" width={20} height={20} alt="Errors" />
             <span>Error Alerts</span>
           </Link>
-          <Link href="/settings" className={styles.navItem}>
-            <Image src="/settings-icon.svg" width={20} height={20} alt="Settings" />
-            <span>Settings</span>
-          </Link>
+          
         </nav>
 
-        <div className={styles.logoutSection}>
-          <div className={styles.navItem} onClick={handleLogout} style={{cursor: 'pointer'}}>
-            <Image src="/logout-icon.svg" width={20} height={20} alt="Logout" />
-            <span>Logout</span>
-          </div>
-        </div>
+        
       </aside>
 
       {/* --- MAIN CONTENT --- */}
@@ -207,10 +222,16 @@ export default function StockPage() {
             <div className={styles.headerLeft}>
                 <div className={styles.pageTitle}>STOCK MANAGEMENT</div>
             </div>
-            <div className={styles.userProfile}>
-                <span>Juan Dela Cruz</span>
-                <Image src="/user-profile.svg" width={30} height={30} alt="User" />
-            </div>
+            <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} style={{position: 'relative', cursor: 'pointer'}}>
+            <span>Admin</span>
+            <Image src="/user-profile.svg" width={30} height={30} alt="User" />
+            {isProfileDropdownOpen && (
+                <div className="profileDropdown">
+                    <div className="dropdownItem" onClick={() => window.location.href = '/settings'}>Settings</div>
+                    <div className="dropdownItem" onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}>Logout</div>
+                </div>
+            )}
+          </div>
         </header>
 
         <div className={styles.contentArea}>
@@ -297,6 +318,37 @@ export default function StockPage() {
                     </div>
                 ))}
 
+            </div>
+            <div className={styles.tableContainer} style={{ marginTop: '32px' }}>
+              <div className={styles.tableHeaderTitle}>Refill History</div>
+              <table className={styles.historyTable}>
+                <thead>
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Slot</th>
+                    <th>Product</th>
+                    <th>Added</th>
+                    <th>New Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isLoadingHistory ? (
+                    <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#999' }}>Loading history...</td></tr>
+                  ) : refillHistory.length === 0 ? (
+                    <tr><td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#999' }}>No refill history found.</td></tr>
+                  ) : (
+                    refillHistory.map((record) => (
+                      <tr key={record.id}>
+                        <td>{formatDate(record.createdAt)}</td>
+                        <td>{record.slotId.replace('slot', 'Slot ')}</td>
+                        <td>{record.productName}</td>
+                        <td style={{ color: '#2A9D8F', fontWeight: 'bold' }}>+{record.addedStock}</td>
+                        <td>{record.newStock}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
         </div>
 

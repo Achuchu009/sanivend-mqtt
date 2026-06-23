@@ -21,6 +21,7 @@ model Inventory {
   sales        Sales[]
   systemLogs   SystemLogs[]
   rfidTransactions RFIDTransaction[]
+  refillHistory    RefillHistory[]
 
   @@map("inventory")  // Optional: keeps your table name lowercase
 }
@@ -101,4 +102,17 @@ model Admin {
   id        Int     @id @default(1)
   username  String  @unique
   password  String
+}
+
+model RefillHistory {
+  id          Int      @id @default(autoincrement())
+  slotId      String
+  productName String
+  addedStock  Int      // How many items were added
+  newStock    Int      // Total stock after refill
+  createdAt   DateTime @default(now())
+
+  inventory   Inventory @relation(fields: [slotId], references: [slotId])
+
+  @@map("refill_history")
 }

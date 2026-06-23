@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request) {
   try {
     const sessionToken = request.cookies.get('admin_session');
-    if (!sessionToken) {
+    if (!sessionToken || sessionToken.value !== process.env.SERVER_RUN_ID) {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 401 });
     }
 
