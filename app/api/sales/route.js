@@ -29,7 +29,8 @@ export async function GET(request) {
     const sales = rawSales.map(sale => ({
       ...sale,
       amount: Number(sale.amount),
-      quantity: sale.quantity || 1 // Babasahin nito yung totoong quantity sa database
+      quantity: sale.quantity || 1, // Babasahin nito yung totoong quantity sa database
+      paymentMethod: (sale.paymentMethod === 'Cash' || sale.paymentMethod === 'COIN') ? 'Coins' : sale.paymentMethod
     }));
 
     // --- CALCULATIONS (UPDATED WITH QUANTITY) ---
@@ -68,7 +69,7 @@ export async function GET(request) {
 
     // D. Payment Method Data (Donut Chart)
     const paymentStats = [
-        { name: 'Cash', value: sales.filter(s => s.paymentMethod === 'Cash' || s.paymentMethod === 'COIN').length },
+        { name: 'Coins', value: sales.filter(s => s.paymentMethod === 'Coins').length },
         { name: 'RFID', value: sales.filter(s => s.paymentMethod === 'RFID').length }
     ];
 

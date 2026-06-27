@@ -54,7 +54,7 @@ export async function GET(req) {
     // Hahanapin niya kung may error na "Open" at may salitang "offline"
     const isOffline = allLogs.some(log => 
         log.message.toLowerCase().includes('offline') && 
-        log.status === 'Open'
+        log.status.startsWith('Open')
     );
     
     // Kapag may offline error, magiging false ito. Kapag resolved na, magiging true (ONLINE)!

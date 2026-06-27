@@ -48,7 +48,7 @@ export async function POST(request) {
     if (enableErrors) {
       // 2. Fetch Active Errors (Status = 'Open')
       activeErrorLogs = await prisma.systemLogs.findMany({
-        where: { status: 'Open' },
+        where: { status: { startsWith: 'Open' } },
         select: { message: true } 
       });
 

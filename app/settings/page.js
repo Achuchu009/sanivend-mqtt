@@ -159,7 +159,7 @@ export default function SettingsPage() {
             <div className={styles.headerLeft}>
                 <div className={styles.pageTitle}>SETTINGS</div>
             </div>
-            <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} style={{position: 'relative', cursor: 'pointer'}}>
+            <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} onBlur={() => setTimeout(() => setIsProfileDropdownOpen(false), 200)} tabIndex={0} style={{position: 'relative', cursor: 'pointer', outline: 'none'}}>
             <span>Admin</span>
             <Image src="/user-profile.svg" width={30} height={30} alt="User" />
             {isProfileDropdownOpen && (

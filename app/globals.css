@@ -17,31 +17,104 @@ a {
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: 5px;
+  margin-top: 8px;
   background: white;
-  border: 1px solid #E2E8F0;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  width: 150px;
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  width: 160px;
   z-index: 100;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .dropdownItem {
-  padding: 12px 16px;
-  color: #334155;
+  padding: 14px 20px;
+  color: #475569;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .dropdownItem:hover {
-  background: #F1F5F9;
+  background: #F8FAFC;
+  color: #0F172A;
+  padding-left: 24px;
+}
+
+.dropdownItem:last-child {
+  color: #E11D48;
+}
+
+.dropdownItem:last-child:hover {
+  background: #FFF1F2;
+  color: #BE123C;
+}
+/* --- GLOBAL LOADER THEME --- */
+.globalLoaderContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  background-color: #E0FBF8;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+}
+
+.globalLoaderSpinner {
+  width: 65px;
+  height: 65px;
+  border: 6px solid rgba(42, 157, 143, 0.2);
+  border-radius: 50%;
+  border-top-color: #2A9D8F;
+  border-right-color: #457B9D;
+  border-bottom-color: #E9C46A;
+  animation: spin 1.2s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
+  margin-bottom: 24px;
+}
+
+.globalLoaderText {
+  font-family: 'Poppins', sans-serif;
   color: #1A365D;
+  font-weight: 600;
+  font-size: 1.2rem;
+  letter-spacing: 1.5px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Remove arrows from number inputs globally */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }

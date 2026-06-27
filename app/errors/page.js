@@ -78,7 +78,7 @@ export default function ErrorPage() {
 
   const filteredLogs = logs.filter(log => {
       let statusMatch = true;
-      if (filterStatus === 'Open') statusMatch = log.status === 'Open';
+      if (filterStatus === 'Open') statusMatch = log.status.startsWith('Open');
       if (filterStatus === 'Resolved') statusMatch = log.status === 'Resolved';
 
       let searchMatch = true;
@@ -104,7 +104,7 @@ export default function ErrorPage() {
     if (e.target.checked) {
       // WAG ISAMA SA BULK DELETE ANG NET_01 NA NAKA-OPEN
       const idsOnPage = currentItems
-          .filter(log => !(log.errorCode === 'NET_01' && log.status === 'Open'))
+          .filter(log => !(log.errorCode === 'NET_01' && log.status.startsWith('Open')))
           .map(log => log.id);
       setSelectedIds(idsOnPage);
     } else {
@@ -121,7 +121,7 @@ export default function ErrorPage() {
   };
 
   const handleToggleStatus = async (id, currentStatus) => {
-    const newStatus = currentStatus === 'Open' ? 'Resolved' : 'Open';
+    const newStatus = currentStatus.startsWith('Open') ? 'Resolved' : 'Open';
     try {
       await fetch('/api/errors', {
         method: 'PUT',
@@ -321,7 +321,7 @@ export default function ErrorPage() {
                                     type="checkbox" 
                                     className={styles.checkbox}
                                     onChange={handleSelectAll}
-                                    checked={currentItems.length > 0 && selectedIds.length === currentItems.filter(log => !(log.errorCode === 'NET_01' && log.status === 'Open')).length}
+                                    checked={currentItems.length > 0 && selectedIds.length === currentItems.filter(log => !(log.errorCode === 'NET_01' && log.status.startsWith('Open'))).length}
                                 />
                             </th>
                             <th>Timestamp</th>
@@ -342,7 +342,7 @@ export default function ErrorPage() {
                                             className={styles.checkbox}
                                             checked={selectedIds.includes(log.id)}
                                             onChange={() => handleSelectOne(log.id)}
-                                            style={{ visibility: (log.errorCode === 'NET_01' && log.status === 'Open') ? 'hidden' : 'visible' }}
+                                            style={{ visibility: (log.errorCode === 'NET_01' && log.status.startsWith('Open')) ? 'hidden' : 'visible' }}
                                         />
                                     </div>
                                 </td>
@@ -355,7 +355,7 @@ export default function ErrorPage() {
                                         log.errorCode.startsWith('CHG') ? styles.statusChange : 
                                         styles.statusOpen
                                     }`}>
-                                        {log.status === 'Open' && log.errorCode.startsWith('CHG') ? 'Change Due' : log.status}
+                                        {log.status.startsWith('Open') && log.errorCode.startsWith('CHG') ? 'Change Due' : log.status}
                                     </span>
                                 </td>
                                 
@@ -364,7 +364,7 @@ export default function ErrorPage() {
                                         
                                         {/* STRICT WIDTH DIV KAPAG NAKA NET_01 OPEN */}
                                         {log.errorCode === 'NET_01' ? (
-                                            log.status === 'Open' ? (
+                                            log.status.startsWith('Open') ? (
                                                 <div style={{ width: '100px', flexShrink: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '11px', color: '#E63946', fontStyle: 'italic', fontWeight: '800' }}>
                                                     Reconnecting...
                                                 </div>
@@ -375,12 +375,12 @@ export default function ErrorPage() {
                                             )
                                         ) : (
                                             <button 
-                                                className={log.status === 'Open' ? styles.resolveBtn : styles.reopenBtn}
+                                                className={log.status.startsWith('Open') ? styles.resolveBtn : styles.reopenBtn}
                                                 onClick={() => handleToggleStatus(log.id, log.status)}
-                                                title={log.status === 'Open' ? 'Mark Resolved' : 'Re-open'}
+                                                title={log.status.startsWith('Open') ? 'Mark Resolved' : 'Re-open'}
                                             >
-                                                {log.status === 'Open' ? <CheckIcon /> : <RefreshIcon />}
-                                                <span>{log.status === 'Open' ? 'Resolve' : 'Re-open'}</span>
+                                                {log.status.startsWith('Open') ? <CheckIcon /> : <RefreshIcon />}
+                                                <span>{log.status.startsWith('Open') ? 'Resolve' : 'Re-open'}</span>
                                             </button>
                                         )}
 
@@ -389,7 +389,7 @@ export default function ErrorPage() {
                                             className={styles.deleteBtn}
                                             onClick={() => initiateDelete(log.id)}
                                             title="Delete Log"
-                                            style={{ visibility: (log.errorCode === 'NET_01' && log.status === 'Open') ? 'hidden' : 'visible' }}
+                                            style={{ visibility: (log.errorCode === 'NET_01' && log.status.startsWith('Open')) ? 'hidden' : 'visible' }}
                                         >
                                             <TrashIcon />
                                         </button>

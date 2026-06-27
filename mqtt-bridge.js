@@ -5,7 +5,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const brokerUrl = process.env.MQTT_BROKER_URL || 'mqtt://localhost';
-const client = mqtt.connect(brokerUrl); 
+const client = mqtt.connect(brokerUrl);
 
 // Topics
 const TOPIC_STOCK_REQUEST = 'vending/stock/request';
@@ -14,8 +14,8 @@ const TOPIC_DISPENSE = 'vending/dispense';
 const TOPIC_DISPENSE_RESPONSE = 'vending/dispense/response';
 const TOPIC_SALES = 'sanivend/sales';
 const TOPIC_ERRORS = 'sanivend/errors';
-const TOPIC_STATUS = 'vending/status'; 
-const TOPIC_HEARTBEAT = 'vending/heartbeat'; // <--- NEW ADDITION (Ito ang kulang)
+const TOPIC_STATUS = 'vending/status';
+const TOPIC_HEARTBEAT = 'vending/heartbeat';
 const TOPIC_AUTH_REQ = 'sanivend/auth/req';
 const TOPIC_AUTH_RES = 'sanivend/auth/res';
 
@@ -24,13 +24,14 @@ const TOPIC_RESTOCK = 'vending/admin/restock';
 // --- WATCHDOG VARIABLES ---
 let lastHeartbeatTime = Date.now();
 let isMachineOffline = false;
+let firstHeartbeatReceived = false;
 
 client.on('connect', () => {
   console.log('✅ MQTT Bridge Connected');
-  
+
   // Mag-subscribe na rin sa TOPIC_HEARTBEAT
   client.subscribe([
-    TOPIC_STOCK_REQUEST, TOPIC_DISPENSE, TOPIC_SALES, 
+    TOPIC_STOCK_REQUEST, TOPIC_DISPENSE, TOPIC_SALES,
     TOPIC_ERRORS, TOPIC_STATUS, TOPIC_AUTH_REQ, TOPIC_HEARTBEAT, TOPIC_RESTOCK
   ]);
 
@@ -40,27 +41,27 @@ client.on('connect', () => {
 
 // --- WATCHDOG FUNCTION ---
 async function checkConnectionStatus() {
-    const timeSinceLastBeat = Date.now() - lastHeartbeatTime;
-    const TIMEOUT_LIMIT = 15000; // 15 Seconds timeout
+  const timeSinceLastBeat = Date.now() - lastHeartbeatTime;
+  const TIMEOUT_LIMIT = 60000; // 60 Seconds timeout (increased to handle 45s LCD pauses)
 
-    if (timeSinceLastBeat > TIMEOUT_LIMIT && !isMachineOffline) {
-        // TIMEOUT REACHED! Machine is gone.
-        console.log("🚨 ALERT: Machine Heartbeat Lost! Logging Error...");
-        isMachineOffline = true; 
+  if (timeSinceLastBeat > TIMEOUT_LIMIT && !isMachineOffline) {
+    // TIMEOUT REACHED! Machine is gone.
+    console.log("🚨 ALERT: Machine Heartbeat Lost! Logging Error...");
+    isMachineOffline = true;
 
-        try {
-            await prisma.systemLogs.create({
-                data: {
-                    errorCode: "NET_01",
-                    message: "Machine Offline / Disconnected",
-                    status: "Open"
-                }
-            });
-            console.log("⚠️ Database Updated: NET_01 Logged.");
-        } catch (err) {
-            console.error("Error logging offline status:", err);
+    try {
+      await prisma.systemLogs.create({
+        data: {
+          errorCode: "NET_01",
+          message: "Machine Offline / Disconnected",
+          status: "Open"
         }
+      });
+      console.log("⚠️ Database Updated: NET_01 Logged.");
+    } catch (err) {
+      console.error("Error logging offline status:", err);
     }
+  }
 }
 
 client.on('message', async (topic, message) => {
@@ -69,30 +70,42 @@ client.on('message', async (topic, message) => {
   // ---------------------------------------------------------
   // CASE 0: HEARTBEAT RECEIVED (Reset Timer & Auto-Resolve)
   // ---------------------------------------------------------
-  // UPDATED: Check both STATUS and HEARTBEAT topics
-  if (topic === TOPIC_STATUS || topic === TOPIC_HEARTBEAT) {
-      lastHeartbeatTime = Date.now(); // Reset timer
-      
+  // UPDATED: Reset timer for ANY message from the machine to prevent false offline statuses
+  // when the machine is busy displaying an error or dispensing and misses a heartbeat.
+  const machineTopics = [
+    TOPIC_STATUS, TOPIC_HEARTBEAT, TOPIC_ERRORS,
+    TOPIC_SALES, TOPIC_DISPENSE, TOPIC_STOCK_REQUEST, TOPIC_AUTH_REQ
+  ];
+
+  if (machineTopics.includes(topic)) {
+    lastHeartbeatTime = Date.now(); // Reset timer
+
+    if (isMachineOffline || !firstHeartbeatReceived) {
       if (isMachineOffline) {
-          console.log("✅ Machine Reconnected! Auto-resolving NET_01...");
-          isMachineOffline = false; 
-          
-          // AUTO-RESOLVE: Mark 'NET_01' as Resolved in Database
-          try {
-              await prisma.systemLogs.updateMany({
-                  where: { 
-                      errorCode: 'NET_01',
-                      status: 'Open'
-                  },
-                  data: { status: 'Resolved' }
-              });
-              console.log("✅ Database Updated: Machine marked Online.");
-          } catch (err) {
-              console.error("Error resolving offline status:", err);
-          }
+        console.log("✅ Machine Reconnected! Auto-resolving NET_01...");
+      } else {
+        console.log("✅ First Heartbeat Received! Auto-resolving any dangling NET_01...");
       }
-      // Kung heartbeat lang, return na (wag na i-parse as JSON kung di kailangan)
-      if (topic === TOPIC_HEARTBEAT) return;
+      isMachineOffline = false;
+      firstHeartbeatReceived = true;
+
+      // AUTO-RESOLVE: Mark 'NET_01' as Resolved in Database
+      try {
+        await prisma.systemLogs.updateMany({
+          where: {
+            errorCode: 'NET_01',
+            status: 'Open'
+          },
+          data: { status: 'Resolved' }
+        });
+        console.log("✅ Database Updated: Machine marked Online.");
+      } catch (err) {
+        console.error("Error resolving offline status:", err);
+      }
+    }
+
+    // Kung heartbeat lang, return na (wag na i-parse as JSON kung di kailangan)
+    if (topic === TOPIC_HEARTBEAT || topic === TOPIC_STATUS) return;
   }
 
   // console.log(`\n📩 Received on ${topic}: ${payload}`); // Uncomment kung gusto mo makita lahat ng logs
@@ -102,17 +115,17 @@ client.on('message', async (topic, message) => {
 
     // CASE 1: AUTH
     if (topic === TOPIC_AUTH_REQ) {
-        const { uid } = data;
-        console.log(`🔍 Validating Card: ${uid}`);
-        const card = await prisma.rFIDCard.findUnique({ where: { uid: uid } });
-        const response = {
-            uid: uid,
-            isValid: !!card,
-            balance: card ? parseFloat(card.balance) : 0.0,
-            owner: card ? card.owner : "Unknown"
-        };
-        client.publish(TOPIC_AUTH_RES, JSON.stringify(response));
-        console.log(`📤 Sent Auth Response: ${response.isValid ? "Valid" : "Invalid"}`);
+      const { uid } = data;
+      console.log(`🔍 Validating Card: ${uid}`);
+      const card = await prisma.rFIDCard.findUnique({ where: { uid: uid } });
+      const response = {
+        uid: uid,
+        isValid: !!card,
+        balance: card ? parseFloat(card.balance) : 0.0,
+        owner: card ? card.owner : "Unknown"
+      };
+      client.publish(TOPIC_AUTH_RES, JSON.stringify(response));
+      console.log(`📤 Sent Auth Response: ${response.isValid ? "Valid" : "Invalid"}`);
     }
 
     // CASE 2: STOCK REQUEST
@@ -121,10 +134,10 @@ client.on('message', async (topic, message) => {
       const cleanSlotId = slotId ? slotId.trim() : "";
       const item = await prisma.inventory.findUnique({ where: { slotId: cleanSlotId } });
       if (item) {
-        const response = JSON.stringify({ 
-          slotId: item.slotId, 
-          stock: item.stock, 
-          price: Number(item.unitPrice) 
+        const response = JSON.stringify({
+          slotId: item.slotId,
+          stock: item.stock,
+          price: Number(item.unitPrice)
         });
         client.publish(TOPIC_STOCK_RESPONSE, response);
         // console.log(`📤 Sent Stock Update: ${response}`);
@@ -147,7 +160,7 @@ client.on('message', async (topic, message) => {
     }
 
     // CASE 4: SALES
-     if (topic === TOPIC_SALES) {
+    if (topic === TOPIC_SALES) {
       const { amount, paymentMethod, slotId, itemName, quantity, quantity_dispensed, cardUid, newBalance } = data;
       const qty = quantity_dispensed !== undefined ? quantity_dispensed : (quantity || 1);
       await prisma.sales.create({
@@ -163,13 +176,13 @@ client.on('message', async (topic, message) => {
       console.log(`💰 Sale Saved: Php ${amount} for ${qty} item(s)`);
 
       if (paymentMethod === 'RFID' && cardUid && newBalance !== undefined) {
-          try {
-            await prisma.rFIDCard.update({
-                where: { uid: cardUid },
-                data: { balance: parseFloat(newBalance), lastUsed: new Date() }
-            });
-            console.log(`💳 Database Balance Updated`);
-          } catch (err) { console.log(`⚠️ Card not found`); }
+        try {
+          await prisma.rFIDCard.update({
+            where: { uid: cardUid },
+            data: { balance: parseFloat(newBalance), lastUsed: new Date() }
+          });
+          console.log(`💳 Database Balance Updated`);
+        } catch (err) { console.log(`⚠️ Card not found`); }
       }
     }
 
@@ -197,7 +210,7 @@ client.on('message', async (topic, message) => {
         console.error(`Error updating stock for restock:`, err);
       }
     }
-      } catch (err) {
+  } catch (err) {
     // console.error("❌ Error processing message:", err);
   }
 });

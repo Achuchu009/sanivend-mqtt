@@ -87,7 +87,12 @@ export default function Dashboard() {
   };
 
   if (error) return <div className={styles.container}>Network Error</div>;
-  if (!data) return <div className={styles.container} style={{justifyContent:'center', alignItems:'center'}}>Loading System...</div>;
+  if (!data) return (
+    <div className="globalLoaderContainer">
+      <div className="globalLoaderSpinner"></div>
+      <div className="globalLoaderText">LOADING DASHBOARD...</div>
+    </div>
+  );
 
   if (data.error || !data.inventory) {
     return (
@@ -160,8 +165,7 @@ export default function Dashboard() {
             <div className={styles.headerLeft}>
                 <div className={styles.pageTitle}>DASHBOARD OVERVIEW</div>
             </div>
-            <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} style={{position: 'relative', cursor: 'pointer'}}>
-            <span>Admin</span>
+            <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} onBlur={() => setTimeout(() => setIsProfileDropdownOpen(false), 200)} tabIndex={0} style={{position: 'relative', cursor: 'pointer', outline: 'none'}}>
             <Image src="/user-profile.svg" width={30} height={30} alt="User" />
             {isProfileDropdownOpen && (
                 <div className="profileDropdown">

@@ -170,7 +170,12 @@ export default function StockPage() {
   };
 
   if (error) return <div className={styles.container}>Network Error</div>;
-  if (!inventory) return <div className={styles.container}>Loading Inventory...</div>;
+  if (!inventory) return (
+    <div className="globalLoaderContainer">
+      <div className="globalLoaderSpinner"></div>
+      <div className="globalLoaderText">LOADING INVENTORY...</div>
+    </div>
+  );
 
   return (
     <div className={styles.container}>
@@ -222,8 +227,7 @@ export default function StockPage() {
             <div className={styles.headerLeft}>
                 <div className={styles.pageTitle}>STOCK MANAGEMENT</div>
             </div>
-            <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} style={{position: 'relative', cursor: 'pointer'}}>
-            <span>Admin</span>
+            <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} onBlur={() => setTimeout(() => setIsProfileDropdownOpen(false), 200)} tabIndex={0} style={{position: 'relative', cursor: 'pointer', outline: 'none'}}>
             <Image src="/user-profile.svg" width={30} height={30} alt="User" />
             {isProfileDropdownOpen && (
                 <div className="profileDropdown">
@@ -282,6 +286,12 @@ export default function StockPage() {
                                 <label className={styles.label}>Set New Stock Level</label>
                                 <input 
                                     type="number" 
+                                    min="0"
+                                    onKeyDown={(e) => {
+                                        if (e.key === '-' || e.key === 'e' || e.key === '+' || e.key === '.') {
+                                            e.preventDefault();
+                                        }
+                                    }}
                                     className={styles.numberInput}
                                     placeholder="Enter quantity" 
                                     // FIX: Uses optional chaining and falls back to ''
@@ -294,9 +304,15 @@ export default function StockPage() {
                                 <label className={styles.label}>Max Capacity</label>
                                 <input 
                                     type="number" 
+                                    min="0"
+                                    onKeyDown={(e) => {
+                                        if (e.key === '-' || e.key === 'e' || e.key === '+' || e.key === '.') {
+                                            e.preventDefault();
+                                        }
+                                    }}
                                     className={styles.numberInput}
-                                    // FIX: Pre-fills max, falls back to default
-                                    value={editValues[item.slotId]?.max || item.max || 30}
+                                    placeholder="Enter max capacity" 
+                                    value={editValues[item.slotId]?.max ?? ''} 
                                     onChange={(e) => handleInputChange(item.slotId, 'max', e.target.value)}
                                 />
                             </div>
@@ -305,8 +321,15 @@ export default function StockPage() {
                                 <label className={styles.label}>Set Unit Price</label>
                                 <input 
                                     type="number" 
+                                    min="0"
+                                    onKeyDown={(e) => {
+                                        if (e.key === '-' || e.key === 'e' || e.key === '+') {
+                                            e.preventDefault();
+                                        }
+                                    }}
                                     className={styles.numberInput}
-                                    value={editValues[item.slotId]?.price ?? item.price ?? 0}
+                                    placeholder="Enter price" 
+                                    value={editValues[item.slotId]?.price ?? ''} 
                                     onChange={(e) => handleInputChange(item.slotId, 'price', e.target.value)}
                                 />
                             </div>

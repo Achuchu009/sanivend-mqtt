@@ -495,8 +495,7 @@ export default function RegisterCardPage() {
                     <div className={styles.headerLeft}>
                         <div className={styles.pageTitle}>REGISTER NEW CARD</div>
                     </div>
-                    <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} style={{position: 'relative', cursor: 'pointer'}}>
-                        <span>Admin</span>
+                    <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} onBlur={() => setTimeout(() => setIsProfileDropdownOpen(false), 200)} tabIndex={0} style={{position: 'relative', cursor: 'pointer', outline: 'none'}}>
                         <Image src="/user-profile.svg" width={30} height={30} alt="User" />
                         {isProfileDropdownOpen && (
                             <div className="profileDropdown">

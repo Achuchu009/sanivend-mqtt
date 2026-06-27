@@ -66,7 +66,12 @@ export default function SalesPage() {
   };
 
   if (error) return <div className={styles.container}>Network Error</div>;
-  if (!data) return <div className={styles.container} style={{justifyContent:'center', alignItems:'center'}}>Loading Analytics...</div>;
+  if (!data) return (
+    <div className="globalLoaderContainer">
+      <div className="globalLoaderSpinner"></div>
+      <div className="globalLoaderText">LOADING ANALYTICS...</div>
+    </div>
+  );
 
   const filteredSales = data.sales.filter(sale => {
     const matchSlot = filterSlot === 'All' || sale.slotId === filterSlot;
@@ -203,8 +208,7 @@ export default function SalesPage() {
             <div className={styles.headerLeft}>
                 <div className={styles.pageTitle}>SALES ANALYTICS</div>
             </div>
-            <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} style={{position: 'relative', cursor: 'pointer'}}>
-                <span>Admin</span>
+            <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} onBlur={() => setTimeout(() => setIsProfileDropdownOpen(false), 200)} tabIndex={0} style={{position: 'relative', cursor: 'pointer', outline: 'none'}}>
                 <Image src="/user-profile.svg" width={30} height={30} alt="User" />
                 {isProfileDropdownOpen && (
                     <div className="profileDropdown">
@@ -378,7 +382,7 @@ export default function SalesPage() {
                         <span className={styles.filterLabel}>Payment:</span>
                         <select className={styles.selectInput} value={filterPayment} onChange={(e) => setFilterPayment(e.target.value)}>
                             <option value="All">All Types</option>
-                            <option value="Cash">Cash</option>
+                            <option value="Coins">Coins</option>
                             <option value="RFID">RFID Card</option>
                         </select>
                     </div>

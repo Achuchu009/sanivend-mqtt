@@ -12,11 +12,11 @@ export async function GET() {
     });
     
     // Count Active Errors (Excluding Connectivity logs if you want, or keep them)
-    const activeCount = logs.filter(log => log.status === 'Open').length;
+    const activeCount = logs.filter(log => log.status.startsWith('Open')).length;
 
     // CHECK CONNECTION: Is there an active 'NET_01' error?
     // If YES -> Machine is Offline. If NO -> Machine is Online.
-    const offlineLog = logs.find(log => log.errorCode === 'NET_01' && log.status === 'Open');
+    const offlineLog = logs.find(log => log.errorCode === 'NET_01' && log.status.startsWith('Open'));
     const isMachineConnected = !offlineLog; 
 
     return NextResponse.json({ 
