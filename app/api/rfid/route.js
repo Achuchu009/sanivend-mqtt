@@ -131,15 +131,20 @@ export async function PATCH(request) {
   }
 }
 
-// DELETE: Remove Card
+// DELETE: Remove Card(s)
 export async function DELETE(request) {
   try {
     const body = await request.json();
-    const { id } = body;
-
-    await prisma.rFIDCard.delete({
-      where: { id: parseInt(id) }
-    });
+    
+    if (body.ids && Array.isArray(body.ids)) {
+      await prisma.rFIDCard.deleteMany({
+        where: { id: { in: body.ids.map(id => parseInt(id)) } }
+      });
+    } else if (body.id) {
+      await prisma.rFIDCard.delete({
+        where: { id: parseInt(body.id) }
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

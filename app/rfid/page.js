@@ -9,6 +9,28 @@ import useSWR, { mutate } from 'swr';
 
 const fetcher = (...args) => fetch(...args).then(res => res.json());
 
+function formatRelativeTime(timestamp) {
+  const now = new Date();
+  const past = new Date(timestamp);
+  const diffMs = now - past;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffSec < 60) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatFullTime(timestamp) {
+  return new Date(timestamp).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+}
+
 // --- SVG ICONS ---
 const SuccessIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#2A9D8F' }}>
@@ -23,6 +45,35 @@ const ErrorIcon = () => (
 const InfoIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#457B9D' }}>
     <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line>
+  </svg>
+);
+const FilterIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+  </svg>
+);
+const SearchIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#94a3b8' }}>
+    <circle cx="11" cy="11" r="8"></circle>
+    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+);
+const ChevronLeftIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 18 9 12 15 6"></polyline>
+  </svg>
+);
+const ChevronRightIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9 18 15 12 9 6"></polyline>
+  </svg>
+);
+const EmptyStateIcon = () => (
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#CBD5E1' }}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+    <polyline points="14 2 14 8 20 8"></polyline>
+    <line x1="12" y1="18" x2="12" y2="12"></line>
+    <line x1="9" y1="15" x2="15" y2="15"></line>
   </svg>
 );
 
@@ -56,6 +107,55 @@ export default function RFIDPage() {
   const uidRef = useRef('');
 
   const { data: history } = useSWR(`/api/rfid?type=history${uid ? `&uid=${uid}` : ''}`, fetcher, { refreshInterval: 2000 });
+
+  // ── Table state ─────────────────────────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOption, setSortOption] = useState('Newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
+  const filteredHistory = Array.isArray(history) ? history.filter(log => {
+    const query = searchQuery.toLowerCase();
+    const absoluteTime = formatFullTime(log.createdAt).toLowerCase();
+    const relativeTime = formatRelativeTime(log.createdAt).toLowerCase();
+    return !searchQuery ||
+      (log.cardUid && log.cardUid.toLowerCase().includes(query)) ||
+      (log.status && log.status.toLowerCase().includes(query)) ||
+      absoluteTime.includes(query) ||
+      relativeTime.includes(query);
+  }).sort((a, b) => {
+    if (sortOption === 'Newest') return new Date(b.createdAt) - new Date(a.createdAt);
+    if (sortOption === 'Oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+    if (sortOption === 'Success First') return a.status === 'Success' ? -1 : 1;
+    return 0;
+  }) : [];
+
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, sortOption]);
+
+  const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredHistory.slice(indexOfFirstItem, indexOfLastItem);
+
+  const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  const prevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+  const goToPage = (n) => setCurrentPage(n);
+
+  const getVisiblePages = (current, total) => {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const pages = [1];
+    let start = Math.max(2, current - 1);
+    let end = Math.min(total - 1, current + 1);
+    if (current <= 3) end = 4;
+    if (current >= total - 2) start = total - 3;
+    if (start > 2) pages.push('...');
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (end < total - 1) pages.push('...');
+    pages.push(total);
+    return pages;
+  };
+  const visiblePages = getVisiblePages(currentPage, totalPages);
+  // ────────────────────────────────────────────────────────────────────────────
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -402,13 +502,13 @@ export default function RFIDPage() {
           <div className={styles.headerLeft}>
             <div className={styles.pageTitle}>RFID CARD TOP-UP</div>
           </div>
-          <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} onBlur={() => setTimeout(() => setIsProfileDropdownOpen(false), 200)} tabIndex={0} style={{position: 'relative', cursor: 'pointer', outline: 'none'}}>
+          <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} onBlur={() => setTimeout(() => setIsProfileDropdownOpen(false), 200)} tabIndex={0} style={{ position: 'relative', cursor: 'pointer', outline: 'none' }}>
             <Image src="/user-profile.svg" width={30} height={30} alt="User" />
             {isProfileDropdownOpen && (
-                <div className="profileDropdown">
-                    <div className="dropdownItem" onClick={() => window.location.href = '/settings'}>Settings</div>
-                    <div className="dropdownItem" onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}>Logout</div>
-                </div>
+              <div className="profileDropdown">
+                <div className="dropdownItem" onClick={() => window.location.href = '/settings'}>Settings</div>
+                <div className="dropdownItem" onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}>Logout</div>
+              </div>
             )}
           </div>
         </header>
@@ -449,7 +549,7 @@ export default function RFIDPage() {
               </div>
               <p className={styles.instructionText}>
                 {!isConnected
-                  ? "RFID scanner is disconnected. Click 'Not Connected' to pair device."
+                  ? "The RFID scanner is currently disconnected. Click the scanner status bar to connect. "
                   : uid
                     ? "Card detected successfully. Current balance shown below."
                     : "Scanner is ready. Tap the student's RFID card to proceed."
@@ -491,9 +591,43 @@ export default function RFIDPage() {
             </div>
           </div>
 
-          {/* 3. HISTORY TABLE */}
+          {/* 3. FILTER BAR — separate card */}
+          <div className={styles.filterBar}>
+            <div className={styles.filterLeft}>
+              <div className={styles.filterGroup}>
+                <FilterIcon />
+                <span className={styles.filterLabel}>Sort</span>
+                <div className={styles.filterPills}>
+                  {['Newest', 'Oldest'].map(tab => (
+                    <button
+                      key={tab}
+                      className={`${styles.filterPill} ${sortOption === tab ? styles.filterPillActive : ''}`}
+                      onClick={() => setSortOption(tab)}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.searchContainer}>
+                <SearchIcon />
+                <input
+                  type="text" placeholder="Search card ID, status, date..."
+                  className={styles.searchInput}
+                  value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button className={styles.clearSearch} onClick={() => setSearchQuery('')} aria-label="Clear search">✕</button>
+                )}
+              </div>
+            </div>
+            <span className={styles.filterMeta}>
+              {filteredHistory.length} result{filteredHistory.length !== 1 && 's'}
+            </span>
+          </div>
+
+          {/* 4. HISTORY TABLE — separate card */}
           <div className={styles.tableContainer}>
-            <div className={styles.tableHeaderTitle}>Recent Transactions</div>
             <table className={styles.historyTable}>
               <thead>
                 <tr>
@@ -504,16 +638,22 @@ export default function RFIDPage() {
                 </tr>
               </thead>
               <tbody>
-                {history?.map((log) => (
-                  <tr key={log.id}>
-                    <td>{new Date(log.createdAt).toLocaleString()}</td>
-                    <td>{maskUid(log.cardUid)}</td>
+                {currentItems.map((log) => (
+                  <tr key={log.id} className={styles.tableRow}>
+                    <td>
+                      <span className={styles.relTime} title={formatFullTime(log.createdAt)}>
+                        {formatRelativeTime(log.createdAt)}
+                      </span>
+                      <span className={styles.absTime}>
+                        {formatFullTime(log.createdAt)}
+                      </span>
+                    </td>
+                    <td><span className={styles.codeBadge}>{maskUid(log.cardUid)}</span></td>
                     <td style={{ color: log.status === 'Success' ? '#2A9D8F' : '#E63946', fontWeight: '700' }}>
                       {log.status === 'Success' ? '+' : ''}Php {log.amount}
                     </td>
                     <td>
-                      <span className={`${styles.statusBadge} ${log.status === 'Success' ? styles.statusSuccess : styles.statusFailed
-                        }`}>
+                      <span className={`${styles.statusBadge} ${log.status === 'Success' ? styles.statusSuccess : styles.statusFailed}`}>
                         {log.status}
                       </span>
                     </td>
@@ -522,15 +662,63 @@ export default function RFIDPage() {
                 {!history && (
                   <tr><td colSpan="4" style={{ textAlign: 'center', padding: '30px', color: '#999' }}>Loading transaction history...</td></tr>
                 )}
+                {history && currentItems.length === 0 && (
+                  <tr>
+                    <td colSpan="4">
+                      <div className={styles.emptyState}>
+                        <EmptyStateIcon />
+                        <p className={styles.emptyStateTitle}>No transactions found</p>
+                        <p className={styles.emptyStateText}>
+                          {searchQuery
+                            ? `No results for "${searchQuery}". Try a different search.`
+                            : 'No transaction history yet.'}
+                        </p>
+                        {searchQuery && (
+                          <button className={styles.emptyStateClear} onClick={() => setSearchQuery('')}>Clear search</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className={styles.pagination}>
+                <span className={styles.paginationMeta}>
+                  {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredHistory.length)} of {filteredHistory.length}
+                </span>
+                <div className={styles.paginationBtns}>
+                  <button className={styles.pageBtn} onClick={prevPage} disabled={currentPage === 1} aria-label="Previous">
+                    <ChevronLeftIcon />
+                  </button>
+                  {visiblePages.map((page, index) => (
+                    page === '...' ? (
+                      <span key={index} className={styles.pageDots}>…</span>
+                    ) : (
+                      <button
+                        key={index}
+                        className={`${styles.pageBtn} ${currentPage === page ? styles.pageBtnActive : ''}`}
+                        onClick={() => goToPage(page)}
+                      >
+                        {page}
+                      </button>
+                    )
+                  ))}
+                  <button className={styles.pageBtn} onClick={nextPage} disabled={currentPage === totalPages} aria-label="Next">
+                    <ChevronRightIcon />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* TOAST */}
         {toast.show && (
           <div className={`${styles.toast} ${toast.type === 'error' ? styles.toastError :
-              toast.type === 'success' ? styles.toastSuccess : styles.toastInfo
+            toast.type === 'success' ? styles.toastSuccess : styles.toastInfo
             }`}>
             <span className={styles.toastIcon}>
               {toast.type === 'success' ? <SuccessIcon /> : toast.type === 'error' ? <ErrorIcon /> : <InfoIcon />}

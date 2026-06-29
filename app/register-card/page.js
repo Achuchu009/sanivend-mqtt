@@ -9,6 +9,29 @@ import useSWR, { mutate } from 'swr';
 
 const fetcher = (...args) => fetch(...args).then(res => res.json());
 
+function formatRelativeTime(timestamp) {
+    const now = new Date();
+    const past = new Date(timestamp);
+    const diffMs = now - past;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+
+    if (diffSec < 60) return 'just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHr < 24) return `${diffHr}h ago`;
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatFullTime(timestamp) {
+    return new Date(timestamp).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+    });
+}
+
 // --- SVG ICONS ---
 const EditIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -48,6 +71,42 @@ const InfoIcon = () => (
         <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line>
     </svg>
 );
+const ChevronLeftIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+);
+const ChevronRightIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+);
+const FilterIcon = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+    </svg>
+);
+const DotsIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="1"></circle>
+        <circle cx="12" cy="5" r="1"></circle>
+        <circle cx="12" cy="19" r="1"></circle>
+    </svg>
+);
+const EmptyStateIcon = () => (
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#CBD5E1' }}>
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="12" y1="18" x2="12" y2="12"></line>
+        <line x1="9" y1="15" x2="15" y2="15"></line>
+    </svg>
+);
+const SearchIcon = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#94a3b8' }}>
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+);
 
 export default function RegisterCardPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -55,7 +114,9 @@ export default function RegisterCardPage() {
 
     // --- ADDED UI STATES ---
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-    const [deleteModal, setDeleteModal] = useState({ show: false, id: null, uid: null });
+    const [deleteModal, setDeleteModal] = useState({ show: false, ids: [], uids: [] });
+    const [openMenuId, setOpenMenuId] = useState(null);
+    const [selectedIds, setSelectedIds] = useState([]);
 
     const [uid, setUid] = useState('');
     const [ownerName, setOwnerName] = useState('');
@@ -72,6 +133,7 @@ export default function RegisterCardPage() {
     const [isWritingCard, setIsWritingCard] = useState(false);
 
     const portRef = useRef(null);
+    const menuRef = useRef(null);
     const writerRef = useRef(null);           // serial writer — needed to send SET: commands
     const readerRef = useRef(null);
     const readableClosedRef = useRef(null);   // pipeTo promise — must await before port.close()
@@ -85,15 +147,68 @@ export default function RegisterCardPage() {
 
     const { data: recentCards } = useSWR('/api/rfid?type=recent', fetcher, { refreshInterval: 2000 });
     const [searchQuery, setSearchQuery] = useState('');
+    const [sortOption, setSortOption] = useState('Newest');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 8;
 
     const filteredCards = Array.isArray(recentCards) ? recentCards.filter(card => {
         const query = searchQuery.toLowerCase();
-        const dateStr = new Date(card.lastLoaded).toLocaleDateString().toLowerCase();
+        const absoluteTime = formatFullTime(card.lastLoaded).toLowerCase();
+        const relativeTime = formatRelativeTime(card.lastLoaded).toLowerCase();
+
         return !searchQuery ||
             (card.owner && card.owner.toLowerCase().includes(query)) ||
             (card.uid && card.uid.toLowerCase().includes(query)) ||
-            (dateStr.includes(query));
+            absoluteTime.includes(query) ||
+            relativeTime.includes(query);
+    }).sort((a, b) => {
+        if (sortOption === 'Newest') return new Date(b.lastLoaded) - new Date(a.lastLoaded);
+        if (sortOption === 'Oldest') return new Date(a.lastLoaded) - new Date(b.lastLoaded);
+        if (sortOption === 'A-Z') return (a.owner || '').localeCompare(b.owner || '');
+        return 0;
     }) : [];
+
+    // Reset page and selection when search or sort changes
+    useEffect(() => {
+        setCurrentPage(1);
+        setSelectedIds([]);
+    }, [searchQuery, sortOption]);
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (menuRef.current && !menuRef.current.contains(e.target)) {
+                setOpenMenuId(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Pagination logic
+    const totalPages = Math.ceil(filteredCards.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredCards.slice(indexOfFirstItem, indexOfLastItem);
+
+    const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+    const prevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+    const goToPage = (n) => setCurrentPage(n);
+
+    const getVisiblePages = (current, total) => {
+        if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+        const pages = [1];
+        let start = Math.max(2, current - 1);
+        let end = Math.min(total - 1, current + 1);
+        if (current <= 3) end = 4;
+        if (current >= total - 2) start = total - 3;
+        if (start > 2) pages.push('...');
+        for (let i = start; i <= end; i++) pages.push(i);
+        if (end < total - 1) pages.push('...');
+        pages.push(total);
+        return pages;
+    };
+    const visiblePages = getVisiblePages(currentPage, totalPages);
 
     const maskUid = (rawUid) => {
         if (!rawUid) return "********";
@@ -135,26 +250,30 @@ export default function RegisterCardPage() {
     };
 
     // --- CUSTOM DELETE FUNCTIONS ---
-    const initiateDelete = (id, cardUid) => {
-        setDeleteModal({ show: true, id, uid: cardUid });
+    const initiateDelete = (ids, uids = []) => {
+        setDeleteModal({
+            show: true,
+            ids: Array.isArray(ids) ? ids : [ids],
+            uids: Array.isArray(uids) ? uids : [uids]
+        });
     };
 
     const confirmDelete = async () => {
-        const id = deleteModal.id;
-        const deletedUid = deleteModal.uid;
+        const { ids, uids } = deleteModal;
         try {
             const res = await fetch('/api/rfid', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id })
+                body: JSON.stringify({ ids })
             });
             if (res.ok) {
+                setSelectedIds([]);
                 mutate('/api/rfid?type=recent');
-                showToast("Card deleted permanently.", "success");
+                showToast(ids.length > 1 ? `${ids.length} cards deleted permanently.` : "Card deleted permanently.", "success");
 
                 // If the deleted card is currently on the scanner, zero its chip
                 // so it can no longer be used at the vending machine or Top-Up page.
-                if (writerRef.current && deletedUid && deletedUid === uid) {
+                if (writerRef.current && uids.includes(uid)) {
                     try {
                         await writerRef.current.write('SET:0\n');
                         // Reset the scanner UI so the card now appears as unregistered
@@ -175,9 +294,25 @@ export default function RegisterCardPage() {
             console.error("System Error", err);
             showToast("System error occurred.", "error");
         } finally {
-            setDeleteModal({ show: false, id: null, uid: null });
+            setDeleteModal({ show: false, ids: [], uids: [] });
         }
     };
+
+    // --- SELECTION ---
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedIds(currentItems.map(card => card.id));
+        } else {
+            setSelectedIds([]);
+        }
+    };
+
+    const handleSelectOne = (id) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]);
+    };
+
+    const isAllSelected = currentItems.length > 0 && selectedIds.length === currentItems.length;
+    const isIndeterminate = selectedIds.length > 0 && selectedIds.length < currentItems.length;
 
     // WATCHDOG TIMER — fires when no DATA| has been received for 2 seconds,
     // meaning the card has been genuinely removed (not just in the RC522's
@@ -495,7 +630,7 @@ export default function RegisterCardPage() {
                     <div className={styles.headerLeft}>
                         <div className={styles.pageTitle}>REGISTER NEW CARD</div>
                     </div>
-                    <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} onBlur={() => setTimeout(() => setIsProfileDropdownOpen(false), 200)} tabIndex={0} style={{position: 'relative', cursor: 'pointer', outline: 'none'}}>
+                    <div className={styles.userProfile} onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)} onBlur={() => setTimeout(() => setIsProfileDropdownOpen(false), 200)} tabIndex={0} style={{ position: 'relative', cursor: 'pointer', outline: 'none' }}>
                         <Image src="/user-profile.svg" width={30} height={30} alt="User" />
                         {isProfileDropdownOpen && (
                             <div className="profileDropdown">
@@ -519,6 +654,15 @@ export default function RegisterCardPage() {
                                 </span>
                             </div>
                         </div>
+                        <div className={styles.statusItem}>
+                            <span className={styles.statusLabel}>Card Status</span>
+                            <div className={styles.statusBadgeContainer}>
+                                <div className={`${styles.statusDot} ${uid ? (isRegistered ? styles.dotRed : styles.dotGreen) : styles.dotGray}`}></div>
+                                <span className={`${styles.statusText} ${uid ? (isRegistered ? styles.textRed : styles.textGreen) : styles.textGray}`}>
+                                    {uid ? (isRegistered ? "Already Registered" : "New Card") : "No Card"}
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
                     {/* 2. MAIN CARD */}
@@ -536,7 +680,7 @@ export default function RegisterCardPage() {
                             </div>
                             <p className={styles.instructionText}>
                                 {!isConnected
-                                    ? "RFID scanner is currently disconnected. Click the status bar to connect."
+                                    ? "The RFID scanner is currently disconnected. Click the scanner status bar to connect."
                                     : uid
                                         ? (justRegistered
                                             ? "Registration Successful! You may now remove the card."
@@ -549,77 +693,142 @@ export default function RegisterCardPage() {
                         </div>
 
                         <div className={styles.cardRight}>
-                            <div className={styles.inputWrapper}>
-                                <label className={styles.inputLabel}>Scanned UID</label>
-                                <input type="text" className={`${styles.inputField} ${styles.inputReadOnly}`} value={maskUid(uid)} readOnly />
-                            </div>
+                            <div className={styles.formGrid}>
+                                <div className={styles.inputWrapper}>
+                                    <label className={styles.inputLabel}>Scanned UID</label>
+                                    <input type="text" className={`${styles.inputField} ${styles.inputReadOnly}`} value={maskUid(uid)} readOnly />
+                                </div>
 
-                            <div className={styles.inputWrapper}>
-                                <label className={styles.inputLabel}>Student Name</label>
-                                <input
-                                    type="text" className={styles.inputField} value={ownerName}
-                                    onChange={(e) => setOwnerName(e.target.value)}
-                                    placeholder="Enter Name" disabled={!uid || (isRegistered && !justRegistered)}
-                                />
-                            </div>
+                                <div className={styles.inputWrapper}>
+                                    <label className={styles.inputLabel}>Student Name</label>
+                                    <input
+                                        type="text" className={styles.inputField} value={ownerName}
+                                        onChange={(e) => setOwnerName(e.target.value)}
+                                        placeholder="Enter Name" disabled={!uid || (isRegistered && !justRegistered)}
+                                    />
+                                </div>
 
-                            <div className={styles.inputWrapper}>
-                                <label className={styles.inputLabel}>Starting Load (Php)</label>
-                                <input
-                                    type="number" className={styles.inputField} value={initialLoad}
-                                    onChange={(e) => setInitialLoad(e.target.value)}
-                                    placeholder="0.00" disabled={!uid || (isRegistered && !justRegistered)}
-                                />
-                            </div>
+                                <div className={`${styles.inputWrapper} ${styles.formGridFull}`}>
+                                    <label className={styles.inputLabel}>Starting Load (Php)</label>
+                                    <input
+                                        type="number" className={styles.inputField} value={initialLoad}
+                                        onChange={(e) => setInitialLoad(e.target.value)}
+                                        placeholder="0.00" disabled={!uid || (isRegistered && !justRegistered)}
+                                    />
+                                </div>
 
-                            <button
-                                className={`${styles.confirmBtn} ${isFormValid ? styles.confirmBtnActive : ''}`}
-                                onClick={handleRegister}
-                                disabled={!isFormValid || (isRegistered && !justRegistered) || isWritingCard}
-                                style={{
-                                    background: justRegistered ? '#12DE37' : undefined,
-                                    color: justRegistered ? '#fff' : undefined,
-                                    borderColor: justRegistered ? '#12DE37' : undefined
-                                }}
-                            >
-                                {isWritingCard ? "Writing to Card..." : justRegistered ? "Success!" : (isRegistered ? "Already Registered" : "Register Card")}
-                            </button>
+                                <div className={styles.formGridFull}>
+                                    <button
+                                        className={`${styles.confirmBtn} ${isFormValid ? styles.confirmBtnActive : ''}`}
+                                        onClick={handleRegister}
+                                        disabled={!isFormValid || (isRegistered && !justRegistered) || isWritingCard}
+                                        style={{
+                                            background: justRegistered ? '#12DE37' : undefined,
+                                            color: justRegistered ? '#fff' : undefined,
+                                            borderColor: justRegistered ? '#12DE37' : undefined
+                                        }}
+                                    >
+                                        {isWritingCard ? "Writing to Card..." : justRegistered ? "✓ Success!" : (isRegistered ? "Already Registered" : "Register Card")}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* 3. RECENT REGISTRATIONS TABLE */}
-                    <div className={styles.tableContainer}>
-                        <div className={styles.tableHeaderTitle} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>Recent Registrations</span>
-                            <div style={{ position: 'relative' }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                </svg>
-                                <input 
-                                    type="text" 
-                                    placeholder="Search owner or ID..." 
-                                    style={{ padding: '8px 16px 8px 36px', borderRadius: '12px', border: '1.5px solid rgba(168, 218, 220, 0.5)', background: '#F8FBFC', fontSize: '13px', outline: 'none', minWidth: '220px', color: '#1D3557' }}
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
+                    {/* ── FILTER & SEARCH BAR ───────────────────────────── */}
+                    <div className={styles.filterBar}>
+                        <div className={styles.filterLeft}>
+                            <div className={styles.filterGroup}>
+                                <FilterIcon />
+                                <span className={styles.filterLabel}>Sort</span>
+                                <div className={styles.filterPills}>
+                                    {['Newest', 'Oldest', 'A-Z'].map(tab => (
+                                        <button
+                                            key={tab}
+                                            className={`${styles.filterPill} ${sortOption === tab ? styles.filterPillActive : ''}`}
+                                            onClick={() => setSortOption(tab)}
+                                        >
+                                            {tab}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className={styles.searchContainer}>
+                                <SearchIcon />
+                                <input
+                                    type="text" placeholder="Search owner or ID..."
+                                    className={styles.searchInput}
+                                    value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                                 />
+                                {searchQuery && (
+                                    <button className={styles.clearSearch} onClick={() => setSearchQuery('')} aria-label="Clear search">
+                                        ✕
+                                    </button>
+                                )}
                             </div>
                         </div>
+
+                        <span className={styles.filterMeta}>
+                            {filteredCards.length} result{filteredCards.length !== 1 && 's'}
+                        </span>
+                    </div>
+
+                    {/* BULK ACTION BAR */}
+                    {selectedIds.length > 0 && (
+                        <div className={styles.bulkBar}>
+                            <span className={styles.bulkCount}>{selectedIds.length} row{selectedIds.length !== 1 ? 's' : ''} selected</span>
+                            <button className={styles.bulkDeleteBtn} onClick={() => initiateDelete(selectedIds)}>
+                                <TrashIcon />
+                                Delete Selected
+                            </button>
+                            <button className={styles.bulkClearBtn} onClick={() => setSelectedIds([])}>
+                                Clear
+                            </button>
+                        </div>
+                    )}
+
+                    {/* 3. RECENT REGISTRATIONS TABLE */}
+                    <div className={styles.tableContainer}>
                         <table className={styles.historyTable}>
                             <thead>
                                 <tr>
-                                    <th>Last Activity</th>
+                                    <th className={styles.thCheck}>
+                                        <input
+                                            type="checkbox"
+                                            className={styles.checkbox}
+                                            onChange={handleSelectAll}
+                                            checked={isAllSelected}
+                                            ref={el => { if (el) el.indeterminate = isIndeterminate; }}
+                                        />
+                                    </th>
+                                    <th>Date Registered</th>
                                     <th>Card ID</th>
                                     <th>Owner Name</th>
                                     <th>Current Balance</th>
-                                    <th>Action</th>
+                                    <th className={styles.thAction}>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredCards.map((card) => (
-                                    <tr key={card.id}>
-                                        <td>{new Date(card.lastLoaded).toLocaleDateString()}</td>
-                                        <td>{maskUid(card.uid)}</td>
+                                {currentItems.map((card, index) => (
+                                    <tr key={card.id} className={`${styles.tableRow} ${selectedIds.includes(card.id) ? styles.rowSelected : ''}`}>
+                                        <td className={styles.tdCheck}>
+                                            <input
+                                                type="checkbox"
+                                                className={styles.checkbox}
+                                                checked={selectedIds.includes(card.id)}
+                                                onChange={() => handleSelectOne(card.id)}
+                                            />
+                                        </td>
+                                        <td>
+                                            <span className={styles.relTime} title={formatFullTime(card.lastLoaded)}>
+                                                {formatRelativeTime(card.lastLoaded)}
+                                            </span>
+                                            <span className={styles.absTime}>
+                                                {formatFullTime(card.lastLoaded)}
+                                            </span>
+                                        </td>
+                                        <td><span className={styles.codeBadge}>{maskUid(card.uid)}</span></td>
                                         <td>
                                             {editingId === card.id ? (
                                                 <input
@@ -629,11 +838,11 @@ export default function RegisterCardPage() {
                                                     autoFocus
                                                 />
                                             ) : (
-                                                card.owner
+                                                <span style={{ fontWeight: '600' }}>{card.owner || 'Unknown'}</span>
                                             )}
                                         </td>
-                                        <td>Php {Number(card.balance).toFixed(2)}</td>
-                                        <td className={styles.actionCell}>
+                                        <td><span style={{ fontWeight: '600', color: '#2A9D8F' }}>Php {Number(card.balance).toFixed(2)}</span></td>
+                                        <td className={styles.tdAction}>
                                             {editingId === card.id ? (
                                                 <>
                                                     <button className={`${styles.iconBtn} ${styles.btnSave}`} onClick={() => saveEdit(card.id)}>
@@ -644,22 +853,73 @@ export default function RegisterCardPage() {
                                                     </button>
                                                 </>
                                             ) : (
-                                                <>
-                                                    <button className={styles.iconBtn} onClick={() => startEditing(card)} title="Edit Name">
+                                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                                    <button className={`${styles.iconBtn} ${styles.btnEdit}`} onClick={() => startEditing(card)} title="Edit Name">
                                                         <EditIcon />
                                                     </button>
-                                                    {/* CHANGED THIS ONCLICK */}
                                                     <button className={`${styles.iconBtn} ${styles.btnDelete}`} onClick={() => initiateDelete(card.id, card.uid)} title="Delete Card">
                                                         <TrashIcon />
                                                     </button>
-                                                </>
+                                                </div>
                                             )}
                                         </td>
                                     </tr>
                                 ))}
                                 {!recentCards && <tr><td colSpan="5" style={{ padding: '30px', textAlign: 'center', color: '#999' }}>Loading recent registrations...</td></tr>}
+
+                                {/* Empty State */}
+                                {recentCards && currentItems.length === 0 && (
+                                    <tr>
+                                        <td colSpan="5">
+                                            <div className={styles.emptyState}>
+                                                <EmptyStateIcon />
+                                                <p className={styles.emptyStateTitle}>No registrations found</p>
+                                                <p className={styles.emptyStateText}>
+                                                    {searchQuery
+                                                        ? `No results for "${searchQuery}". Try a different search.`
+                                                        : 'No registered cards found.'}
+                                                </p>
+                                                {searchQuery && (
+                                                    <button className={styles.emptyStateClear} onClick={() => { setSearchQuery(''); setSortOption('Newest'); }}>
+                                                        Clear search
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
+
+                        {/* ── PAGINATION ──────────────────────────────── */}
+                        {totalPages > 1 && (
+                            <div className={styles.pagination}>
+                                <span className={styles.paginationMeta}>
+                                    {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredCards.length)} of {filteredCards.length}
+                                </span>
+                                <div className={styles.paginationBtns}>
+                                    <button className={styles.pageBtn} onClick={prevPage} disabled={currentPage === 1} aria-label="Previous">
+                                        <ChevronLeftIcon />
+                                    </button>
+                                    {visiblePages.map((page, index) => (
+                                        page === '...' ? (
+                                            <span key={index} className={styles.pageDots}>…</span>
+                                        ) : (
+                                            <button
+                                                key={index}
+                                                className={`${styles.pageBtn} ${currentPage === page ? styles.pageBtnActive : ''}`}
+                                                onClick={() => goToPage(page)}
+                                            >
+                                                {page}
+                                            </button>
+                                        )
+                                    ))}
+                                    <button className={styles.pageBtn} onClick={nextPage} disabled={currentPage === totalPages} aria-label="Next">
+                                        <ChevronRightIcon />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                 </div>
@@ -668,15 +928,15 @@ export default function RegisterCardPage() {
                 {deleteModal.show && (
                     <div className={styles.modalOverlay}>
                         <div className={styles.modalCard}>
-                            <div className={styles.modalTitle}>Confirm Deletion</div>
+                            <div className={styles.modalTitle}>Delete Card{deleteModal.ids?.length > 1 ? 's' : ''}?</div>
                             <p className={styles.modalText}>
-                                Are you sure you want to delete this card?
+                                Are you sure you want to delete {deleteModal.ids?.length > 1 ? `these ${deleteModal.ids.length} cards` : 'this card'}? 
                                 <br />This action cannot be undone.
                             </p>
                             <div className={styles.modalActions}>
                                 <button
                                     className={styles.btnCancelModal}
-                                    onClick={() => setDeleteModal({ show: false, id: null })}
+                                    onClick={() => setDeleteModal({ show: false, ids: [], uids: [] })}
                                 >
                                     Cancel
                                 </button>

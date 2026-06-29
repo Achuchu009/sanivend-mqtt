@@ -1,6 +1,7 @@
 // app/api/errors/route.js
 import { PrismaClient } from '@prisma/client';
 import { NextResponse } from 'next/server';
+import mqtt from 'mqtt';
 
 const prisma = new PrismaClient();
 
@@ -40,6 +41,19 @@ export async function PUT(request) {
       where: { id: parseInt(id) },
       data: { status: status } // <--- Save the new status
     });
+
+    if (status === 'Resolved' && updatedLog.errorCode.startsWith('JAM_') && updatedLog.slotId) {
+      const brokerUrl = process.env.MQTT_BROKER_URL || 'mqtt://localhost';
+      const client = mqtt.connect(brokerUrl); 
+      client.on('connect', () => {
+        client.publish('vending/admin/resolve', JSON.stringify({
+          token: process.env.ADMIN_TOKEN || "sani_admin_2025", 
+          slotId: updatedLog.slotId, 
+          errorCode: updatedLog.errorCode
+        }));
+        client.end();
+      });
+    }
 
     return NextResponse.json({ success: true, log: updatedLog });
   } catch (error) {

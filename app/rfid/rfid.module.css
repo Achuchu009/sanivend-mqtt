@@ -172,31 +172,96 @@
 .tableContainer {
     border-radius: 20px; overflow: hidden; background: var(--color-pure-white);
     box-shadow: var(--shadow-sm); border: 1px solid rgba(168, 218, 220, 0.3);
+    overflow-x: auto;
 }
 
-.tableHeaderTitle {
-    padding: 20px 28px; font-size: 16px; font-weight: 700; 
-    color: var(--color-dark-blue); border-bottom: 1px solid rgba(168, 218, 220, 0.3);
+.historyTable {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    min-width: 600px;
 }
 
-.historyTable { width: 100%; border-collapse: collapse; }
-
-.historyTable th { 
-    background-color: #F8FBFC; color: var(--color-med-blue); text-align: left; 
-    padding: 16px 28px; font-size: 12px; font-weight: 700; text-transform: uppercase;
-    border-bottom: 1px solid rgba(168, 218, 220, 0.3);
+.historyTable th {
+    background-color: #f8fafc; color: #94a3b8; text-align: left;
+    padding: 13px 20px; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.7px;
+    border-bottom: 1px solid #f1f5f9;
 }
 
-.historyTable td { 
-    padding: 18px 28px; font-size: 14px; color: var(--color-dark-blue); font-weight: 500;
-    border-bottom: 1px solid #f0f0f0; 
+.historyTable td {
+    padding: 14px 20px; border-bottom: 1px solid #f8fafc;
+    font-size: 13px; color: var(--color-dark-blue);
+    vertical-align: middle;
 }
 .historyTable tr:last-child td { border-bottom: none; }
 
-.statusPill {
-    background-color: #E0F7FA; color: #006064; padding: 4px 10px; 
-    border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+/* Table row hover */
+.tableRow { transition: background 0.12s; }
+.tableRow:hover td { background-color: #f8fafc; }
+
+/* Timestamp two-line */
+.relTime {
+    display: block; font-size: 13px; font-weight: 500; color: var(--color-dark-blue);
+    cursor: default;
 }
+.absTime {
+    display: block; font-size: 11px; color: #94a3b8; margin-top: 2px;
+}
+
+/* Card ID Badge */
+.codeBadge {
+    display: inline-block; padding: 3px 8px;
+    border-radius: 5px; font-family: 'SF Mono', 'Fira Code', monospace;
+    font-weight: 700; font-size: 11.5px; letter-spacing: 0.3px;
+    background: #f1f5f9; color: #475569;
+}
+
+/* --- FILTER BAR --- */
+.filterBar {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--color-pure-white); padding: 10px 16px;
+    border-radius: 20px; box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(168, 218, 220, 0.3); gap: 16px; flex-wrap: wrap;
+}
+.filterLeft { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.filterGroup { display: flex; align-items: center; gap: 8px; color: #94a3b8; }
+.filterLabel { font-size: 12px; font-weight: 600; color: #94a3b8; white-space: nowrap; }
+.filterPills { display: flex; gap: 4px; }
+.filterPill {
+    padding: 5px 12px; border-radius: 20px; font-size: 12px;
+    font-weight: 500; border: 1.5px solid transparent;
+    background: #f1f5f9; color: #64748b; cursor: pointer;
+    transition: all 0.15s; font-family: inherit;
+}
+.filterPill:hover { background: #e2e8f0; color: #334155; }
+.filterPillActive { background: var(--color-dark-blue); color: #fff; border-color: var(--color-dark-blue); font-weight: 600; }
+.filterMeta { font-size: 12px; color: #94a3b8; font-weight: 500; white-space: nowrap; margin-left: auto; }
+
+.searchContainer {
+    display: flex; align-items: center; gap: 8px;
+    background: #f8fafc; padding: 0 12px; height: 36px;
+    border-radius: 8px; border: 1.5px solid #e2e8f0; transition: all 0.15s;
+}
+.searchContainer:focus-within { border-color: var(--color-med-blue); background: #fff; box-shadow: 0 0 0 3px rgba(69, 123, 157, 0.1); }
+.searchInput { border: none; outline: none; background: transparent; font-size: 13px; color: var(--color-dark-blue); font-family: inherit; width: 200px; }
+.clearSearch { background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 14px; padding: 0; line-height: 1; }
+.clearSearch:hover { color: #475569; }
+
+/* --- EMPTY STATE --- */
+.emptyState { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 56px 24px; text-align: center; }
+.emptyStateTitle { margin: 16px 0 6px; font-size: 15px; font-weight: 600; color: #334155; }
+.emptyStateText { font-size: 13px; color: #94a3b8; max-width: 300px; line-height: 1.6; margin: 0; }
+.emptyStateClear { margin-top: 16px; padding: 7px 16px; border-radius: 6px; background: #f1f5f9; border: none; color: #475569; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+.emptyStateClear:hover { background: #e2e8f0; }
+
+/* --- PAGINATION --- */
+.pagination { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px 10px; border-top: 1px solid #f1f5f9; }
+.paginationMeta { font-size: 13px; color: #94a3b8; font-weight: 500; }
+.paginationBtns { display: flex; gap: 4px; align-items: center; }
+.pageBtn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; cursor: pointer; color: var(--color-dark-blue); font-size: 13px; font-weight: 500; font-family: inherit; transition: all 0.15s; }
+.pageBtn:hover:not(:disabled) { background: var(--color-dark-blue); color: #fff; border-color: var(--color-dark-blue); }
+.pageBtn:disabled { color: #cbd5e1; cursor: not-allowed; }
+.pageBtnActive { background: var(--color-dark-blue); color: #fff; border-color: var(--color-dark-blue); }
+.pageDots { width: 32px; text-align: center; color: #94a3b8; font-size: 14px; }
 
 /* --- TOAST --- */
 .toast {
