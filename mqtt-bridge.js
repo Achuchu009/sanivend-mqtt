@@ -42,7 +42,7 @@ client.on('connect', () => {
 // --- WATCHDOG FUNCTION ---
 async function checkConnectionStatus() {
   const timeSinceLastBeat = Date.now() - lastHeartbeatTime;
-  const TIMEOUT_LIMIT = 60000; // 60 Seconds timeout (increased to handle 45s LCD pauses)
+  const TIMEOUT_LIMIT = 50000; // 50 Seconds timeout
 
   if (timeSinceLastBeat > TIMEOUT_LIMIT && !isMachineOffline) {
     // TIMEOUT REACHED! Machine is gone.
@@ -150,13 +150,20 @@ client.on('message', async (topic, message) => {
       // Hardware now sends quantity_dispensed. Fallback to quantity or 1 for backward compatibility.
       const qty = quantity_dispensed !== undefined ? quantity_dispensed : (quantity || 1);
       const cleanSlotId = slotId.trim();
-      const updatedItem = await prisma.inventory.update({
-        where: { slotId: cleanSlotId },
-        data: { stock: { decrement: qty } }
-      });
-      const response = JSON.stringify({ success: true, slotId: cleanSlotId, newStock: updatedItem.stock });
-      client.publish(TOPIC_DISPENSE_RESPONSE, response);
-      console.log(`📉 Stock Updated: ${cleanSlotId} decremented by ${qty}. Total is now ${updatedItem.stock}`);
+      
+      const currentItem = await prisma.inventory.findUnique({ where: { slotId: cleanSlotId } });
+      if (currentItem) {
+        const newStock = Math.max(0, currentItem.stock - qty);
+        
+        const updatedItem = await prisma.inventory.update({
+          where: { slotId: cleanSlotId },
+          data: { stock: newStock }
+        });
+        
+        const response = JSON.stringify({ success: true, slotId: cleanSlotId, newStock: updatedItem.stock });
+        client.publish(TOPIC_DISPENSE_RESPONSE, response);
+        console.log(`📉 Stock Updated: ${cleanSlotId} decremented by ${qty}. Total is now ${updatedItem.stock}`);
+      }
     }
 
     // CASE 4: SALES
@@ -188,9 +195,25 @@ client.on('message', async (topic, message) => {
 
     // CASE 5: ERRORS
     if (topic === TOPIC_ERRORS) {
-      const { errorCode, message, status } = data;
+      const { errorCode, message, status, slotId } = data;
+      
+      if (status === 'Open' && slotId && errorCode && errorCode.startsWith('JAM_')) {
+        const existingOpenLog = await prisma.systemLogs.findFirst({
+          where: { errorCode, slotId, status: 'Open' }
+        });
+        
+        if (existingOpenLog) {
+          await prisma.systemLogs.update({
+            where: { id: existingOpenLog.id },
+            data: { timestamp: new Date() }
+          });
+          console.log(`⚠️ Error Updated (Duplicate Avoided): ${message}`);
+          return;
+        }
+      }
+
       await prisma.systemLogs.create({
-        data: { errorCode, message, status }
+        data: { errorCode, message, status, slotId }
       });
       console.log(`⚠️ Error Logged: ${message}`);
     }

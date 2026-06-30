@@ -583,9 +583,9 @@ export default function ErrorPage() {
                                                                     <span>View Details</span>
                                                                 </button>
 
-                                                                {/* "Reopen Error" is blocked only for NET_01;
-                                                                    all other error codes can always be reopened */}
-                                                                {(isOpen || log.errorCode !== 'NET_01') && (
+                                                                {/* "Reopen Error" is blocked for NET_01 and JAM_ errors;
+                                                                    other error codes can be reopened */}
+                                                                {(isOpen || (log.errorCode !== 'NET_01' && !log.errorCode.startsWith('JAM_'))) && (
                                                                     <button
                                                                         className={styles.dropdownMenuItem}
                                                                         onClick={() => handleToggleStatus(log.id, log.status)}

@@ -11,19 +11,19 @@ export async function GET() {
     const logs = await prisma.systemLogs.findMany({
       orderBy: { timestamp: 'desc' }
     });
-    
+
     // Count Active Errors (Excluding Connectivity logs if you want, or keep them)
     const activeCount = logs.filter(log => log.status.startsWith('Open')).length;
 
     // CHECK CONNECTION: Is there an active 'NET_01' error?
     // If YES -> Machine is Offline. If NO -> Machine is Online.
     const offlineLog = logs.find(log => log.errorCode === 'NET_01' && log.status.startsWith('Open'));
-    const isMachineConnected = !offlineLog; 
+    const isMachineConnected = !offlineLog;
 
-    return NextResponse.json({ 
-        logs, 
-        activeCount, 
-        isMachineConnected // <--- Sending this status to Frontend
+    return NextResponse.json({
+      logs,
+      activeCount,
+      isMachineConnected // <--- Sending this status to Frontend
     }, { headers: { 'Cache-Control': 'no-store' } });
 
   } catch (error) {
@@ -36,6 +36,15 @@ export async function PUT(request) {
   try {
     const body = await request.json();
     const { id, status } = body; // <--- Accept 'status' from frontend
+    const existingLog = await prisma.systemLogs.findUnique({ where: { id: parseInt(id) } });
+    if (!existingLog) {
+      return NextResponse.json({ error: 'Log not found' }, { status: 404 });
+    }
+
+    // Prevent reopening a JAM_ error that was already resolved
+    if (status === 'Open' && existingLog.status === 'Resolved' && existingLog.errorCode.startsWith('JAM_')) {
+      return NextResponse.json({ error: 'JAM_ errors cannot be reopened' }, { status: 400 });
+    }
 
     const updatedLog = await prisma.systemLogs.update({
       where: { id: parseInt(id) },
@@ -44,14 +53,16 @@ export async function PUT(request) {
 
     if (status === 'Resolved' && updatedLog.errorCode.startsWith('JAM_') && updatedLog.slotId) {
       const brokerUrl = process.env.MQTT_BROKER_URL || 'mqtt://localhost';
-      const client = mqtt.connect(brokerUrl); 
+      const client = mqtt.connect(brokerUrl);
       client.on('connect', () => {
         client.publish('vending/admin/resolve', JSON.stringify({
-          token: process.env.ADMIN_TOKEN || "sani_admin_2025", 
-          slotId: updatedLog.slotId, 
+          token: process.env.ADMIN_TOKEN || "sani_admin_2025",
+          slotId: updatedLog.slotId,
           errorCode: updatedLog.errorCode
-        }));
-        client.end();
+        }), (err) => {
+          if (err) console.error("MQTT Publish Error:", err);
+          client.end();
+        });
       });
     }
 
@@ -67,7 +78,7 @@ export async function DELETE(request) {
     const { ids } = body; // Expecting an array of IDs
 
     if (!ids || !Array.isArray(ids)) {
-        return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid ID format' }, { status: 400 });
     }
 
     // Delete multiple records

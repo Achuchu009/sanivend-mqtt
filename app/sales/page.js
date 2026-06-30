@@ -35,6 +35,56 @@ const InfoIcon = () => (
     </svg>
 );
 
+const SearchIcon = () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#94a3b8' }}>
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+);
+
+const EmptyStateIcon = () => (
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#CBD5E1' }}>
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="12" y1="18" x2="12" y2="12"></line>
+        <line x1="9" y1="15" x2="15" y2="15"></line>
+    </svg>
+);
+
+const ChevronLeftIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 18 9 12 15 6"></polyline>
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9 18 15 12 9 6"></polyline>
+  </svg>
+);
+
+function formatRelativeTime(timestamp) {
+  const now = new Date();
+  const past = new Date(timestamp);
+  const diffMs = now - past;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffSec < 60) return 'just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return past.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatFullTime(timestamp) {
+  return new Date(timestamp).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+}
+
 export default function SalesPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -78,11 +128,13 @@ export default function SalesPage() {
     const matchPayment = filterPayment === 'All' || sale.paymentMethod === filterPayment;
     
     const query = searchQuery.toLowerCase();
-    const dateStr = new Date(sale.createdAt).toLocaleString().toLowerCase();
+    const absoluteTime = formatFullTime(sale.createdAt).toLowerCase();
+    const relativeTime = formatRelativeTime(sale.createdAt).toLowerCase();
     const matchSearch = !searchQuery || 
       (sale.itemName && sale.itemName.toLowerCase().includes(query)) ||
       (sale.slotId && sale.slotId.toLowerCase().includes(query)) ||
-      (dateStr.includes(query));
+      absoluteTime.includes(query) ||
+      relativeTime.includes(query);
 
     return matchSlot && matchPayment && matchSearch;
   });
@@ -346,18 +398,14 @@ export default function SalesPage() {
             </div>
 
             {/* FILTER TOOLBAR */}
-            <div className={styles.filterSection}>
-                <div className={styles.filterTitle}>
-                    <Image src="/settings-icon.svg" width={20} height={20} alt="Filter" />
-                    <span>Transaction History</span>
-                </div>
-                <div className={styles.filterControls}>
+            <div className={styles.filterBar}>
+                <div className={styles.filterLeft}>
                     <button 
                         onClick={handleExportExcel}
                         style={{
-                            backgroundColor: '#1D6F42', color: 'white', border: 'none', padding: '8px 16px',
-                            borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
-                            display: 'flex', alignItems: 'center', gap: '5px', marginRight: '15px'
+                            backgroundColor: '#1D6F42', color: 'white', border: 'none', padding: '7px 14px',
+                            borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
+                            display: 'flex', alignItems: 'center', gap: '5px',
                         }}
                     >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -365,11 +413,11 @@ export default function SalesPage() {
                             <polyline points="7 10 12 15 17 10"></polyline>
                             <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
-                        Export to Excel
+                        Export
                     </button>
 
                     <div className={styles.filterGroup}>
-                        <span className={styles.filterLabel}>Slot:</span>
+                        <span className={styles.filterLabel}>Slot</span>
                         <select className={styles.selectInput} value={filterSlot} onChange={(e) => setFilterSlot(e.target.value)}>
                             <option value="All">All Slots</option>
                             <option value="slot1">Slot 1</option>
@@ -378,31 +426,34 @@ export default function SalesPage() {
                             <option value="slot4">Slot 4</option>
                         </select>
                     </div>
+
                     <div className={styles.filterGroup}>
-                        <span className={styles.filterLabel}>Payment:</span>
+                        <span className={styles.filterLabel}>Payment</span>
                         <select className={styles.selectInput} value={filterPayment} onChange={(e) => setFilterPayment(e.target.value)}>
                             <option value="All">All Types</option>
                             <option value="Coins">Coins</option>
                             <option value="RFID">RFID Card</option>
                         </select>
                     </div>
-                    <div className={styles.filterGroup} style={{ marginLeft: 'auto' }}>
-                        <div style={{ position: 'relative' }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                            <input 
-                                type="text" 
-                                placeholder="Search items..." 
-                                className={styles.selectInput} 
-                                style={{ paddingLeft: '36px', minWidth: '200px' }}
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
+
+                    <div className={styles.searchContainer}>
+                        <SearchIcon />
+                        <input 
+                            type="text" 
+                            placeholder="Search items, dates..." 
+                            className={styles.searchInput}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        {searchQuery && (
+                            <button className={styles.clearSearch} onClick={() => setSearchQuery('')} aria-label="Clear search">✕</button>
+                        )}
                     </div>
                 </div>
+
+                <span className={styles.filterMeta}>
+                    {filteredSales.length} result{filteredSales.length !== 1 && 's'}
+                </span>
             </div>
 
             {/* DATA TABLE */}
@@ -420,8 +471,15 @@ export default function SalesPage() {
                     </thead>
                     <tbody>
                         {currentItems.map((sale) => (
-                            <tr key={sale.id}>
-                                <td>{new Date(sale.createdAt).toLocaleString()}</td>
+                            <tr key={sale.id} className={styles.tableRow}>
+                                <td>
+                                    <span className={styles.relTime} title={formatFullTime(sale.createdAt)}>
+                                        {formatRelativeTime(sale.createdAt)}
+                                    </span>
+                                    <span className={styles.absTime}>
+                                        {formatFullTime(sale.createdAt)}
+                                    </span>
+                                </td>
                                 <td>{sale.slotId.replace('slot', 'Slot ')}</td>
                                 <td>{sale.itemName}</td>
                                 <td>{sale.quantity || 1}</td>
@@ -435,8 +493,19 @@ export default function SalesPage() {
                         ))}
                         {currentItems.length === 0 && (
                             <tr>
-                                <td colSpan="6" style={{textAlign:'center', padding:'30px', color: '#888', fontStyle:'italic'}}> 
-                                    No records found matching filters.
+                                <td colSpan="6">
+                                    <div className={styles.emptyState}>
+                                        <EmptyStateIcon />
+                                        <p className={styles.emptyStateTitle}>No records found</p>
+                                        <p className={styles.emptyStateText}>
+                                            {searchQuery
+                                                ? `No results for "${searchQuery}". Try a different search.`
+                                                : 'No transaction history yet.'}
+                                        </p>
+                                        {searchQuery && (
+                                            <button className={styles.emptyStateClear} onClick={() => setSearchQuery('')}>Clear search</button>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         )}
@@ -446,25 +515,34 @@ export default function SalesPage() {
                 {/* --- 2. IBINALIK NATIN ANG MAPPING SA VISIBLE PAGES DITO --- */}
                 {totalPages > 1 && (
                     <div className={styles.pagination}>
-                        <button className={styles.pageBtn} onClick={prevPage} disabled={currentPage === 1}>&lt;</button>
-                        
-                        {visiblePages.map((page, index) => (
-                            page === "..." ? (
-                                <span key={index} style={{ padding: '0 10px', color: '#888', display: 'flex', alignItems: 'center' }}>
-                                    ...
-                                </span>
-                            ) : (
-                                <button 
-                                    key={index} 
-                                    className={`${styles.pageBtn} ${currentPage === page ? styles.pageBtnActive : ''}`} 
-                                    onClick={() => goToPage(page)}
-                                >
-                                    {page}
-                                </button>
-                            )
-                        ))}
+                        <span className={styles.paginationMeta}>
+                            {indexOfFirstItem + 1}–{Math.min(indexOfLastItem, filteredSales.length)} of {filteredSales.length}
+                        </span>
+                        <div className={styles.paginationBtns}>
+                            <button className={styles.pageBtn} onClick={prevPage} disabled={currentPage === 1} aria-label="Previous">
+                                <ChevronLeftIcon />
+                            </button>
+                            
+                            {visiblePages.map((page, index) => (
+                                page === "..." ? (
+                                    <span key={index} className={styles.pageDots}>
+                                        ...
+                                    </span>
+                                ) : (
+                                    <button 
+                                        key={index} 
+                                        className={`${styles.pageBtn} ${currentPage === page ? styles.pageBtnActive : ''}`} 
+                                        onClick={() => goToPage(page)}
+                                    >
+                                        {page}
+                                    </button>
+                                )
+                            ))}
 
-                        <button className={styles.pageBtn} onClick={nextPage} disabled={currentPage === totalPages}>&gt;</button>
+                            <button className={styles.pageBtn} onClick={nextPage} disabled={currentPage === totalPages} aria-label="Next">
+                                <ChevronRightIcon />
+                            </button>
+                        </div>
                     </div>
                 )}
                 {/* ----------------------------------------------------------- */}

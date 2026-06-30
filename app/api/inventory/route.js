@@ -88,8 +88,10 @@ export async function PUT(request) {
     client.on('connect', () => {
       client.publish('vending/stock/response', JSON.stringify({
         slotId: updatedItem.slotId, stock: updatedItem.stock, price: Number(updatedItem.unitPrice)
-      }));
-      client.end();
+      }), (err) => {
+        if (err) console.error("MQTT Publish Error:", err);
+        client.end();
+      });
     });
 
     return NextResponse.json({ success: true, item: updatedItem });
